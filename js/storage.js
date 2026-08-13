@@ -41,11 +41,15 @@ const Storage = (function () {
         }
     }
 
+    // 默认云端仓库（公开安全，不含令牌）
+    const DEFAULT_CLOUD = { owner: 'sh1n3y', repo: 'cangku', path: 'data.json' };
+
     const CloudSync = {
         getConfig() {
             try {
-                return JSON.parse(localStorage.getItem('tianpao_cloud_config') || '{}');
-            } catch { return {}; }
+                const stored = JSON.parse(localStorage.getItem('tianpao_cloud_config') || '{}');
+                return { ...DEFAULT_CLOUD, ...stored };
+            } catch { return { ...DEFAULT_CLOUD }; }
         },
         setConfig(owner, repo, token, path) {
             localStorage.setItem('tianpao_cloud_config', JSON.stringify({ owner, repo, token, path: path || DEFAULT_PATH }));
