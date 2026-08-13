@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小羊记账 - 个人智能记账系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="logo">🐑 小羊记账</h1>
+                <div class="month-nav">
+                    <button id="prevMonth" class="btn-icon">‹</button>
+                    <span id="currentMonth" class="month-display">2026年08月</span>
+                    <button id="nextMonth" class="btn-icon">›</button>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="cat-marquee">
+                    <img id="catGif" src="assets/cat.gif" alt="小猫动图" class="cat-gif">
+                </div>
+            </div>
+            <div class="header-right">
+                <span id="syncStatus" class="sync-status sync-local"><span class="sync-icon">○</span> 本地</span>
+                <button id="settingsBtn" class="btn btn-outline" title="云端同步设置">⚙ 同步</button>
+                <button id="exportBtn" class="btn btn-outline">导出CSV</button>
+            </div>
+        </header>
+
+        <!-- 汇总卡片 -->
+        <section class="summary-cards">
+            <div class="card card-income">
+                <div class="card-icon">💰</div>
+                <div class="card-body">
+                    <div class="card-label">本月收入</div>
+                    <div class="card-value" id="totalIncome">¥0.00</div>
+                </div>
+            </div>
+            <div class="card card-expense">
+                <div class="card-icon">💸</div>
+                <div class="card-body">
+                    <div class="card-label">本月支出</div>
+                    <div class="card-value" id="totalExpense">¥0.00</div>
+                </div>
+            </div>
+            <div class="card card-balance">
+                <div class="card-icon">📊</div>
+                <div class="card-body">
+                    <div class="card-label">本月结余</div>
+                    <div class="card-value" id="totalBalance">¥0.00</div>
+                </div>
+            </div>
+            <div class="card card-rate">
+                <div class="card-icon">🎯</div>
+                <div class="card-body">
+                    <div class="card-label">储蓄率</div>
+                    <div class="card-value" id="savingsRate">0%</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 录入 + 列表 -->
+        <section class="main-content">
+            <!-- 左侧：录入表单 -->
+            <div class="panel form-panel">
+                <h2 class="panel-title">新增记录</h2>
+                <form id="entryForm" class="entry-form">
+                    <input type="hidden" id="editId" value="">
+                    <div class="form-row">
+                        <label>
+                            <span class="form-label">日期</span>
+                            <input type="date" id="entryDate" required>
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <div class="type-toggle">
+                            <button type="button" class="type-btn active" data-type="expense">支出</button>
+                            <button type="button" class="type-btn" data-type="income">收入</button>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>
+                            <span class="form-label">分类</span>
+                            <select id="entryCategory" required></select>
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <label>
+                            <span class="form-label">用户</span>
+                            <select id="entryUser">
+                                <option value="小羊">小羊</option>
+                                <option value="南瓜">南瓜</option>
+                                <option value="共同">共同</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <label>
+                            <span class="form-label">金额</span>
+                            <input type="number" id="entryAmount" step="0.01" min="0" placeholder="0.00" required>
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <label>
+                            <span class="form-label">备注</span>
+                            <input type="text" id="entryNote" placeholder="选填">
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">添加记录</button>
+                        <button type="button" class="btn btn-outline" id="cancelEditBtn" style="display:none">取消编辑</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 右侧：记录列表 -->
+            <div class="panel table-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">收支明细</h2>
+                    <div class="table-filters">
+                        <select id="filterType" class="filter-select">
+                            <option value="all">全部类型</option>
+                            <option value="income">收入</option>
+                            <option value="expense">支出</option>
+                        </select>
+                        <select id="filterCategory" class="filter-select">
+                            <option value="all">全部分类</option>
+                        </select>
+                        <select id="filterUser" class="filter-select">
+                            <option value="all">全部用户</option>
+                            <option value="小羊">小羊</option>
+                            <option value="南瓜">南瓜</option>
+                            <option value="共同">共同</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="date" class="sortable">日期 ⇅</th>
+                                <th data-sort="type">类型 ⇅</th>
+                                <th data-sort="category" class="sortable">分类 ⇅</th>
+                                <th>用户</th>
+                                <th data-sort="amount" class="sortable">金额 ⇅</th>
+                                <th>备注</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="entryTableBody">
+                        </tbody>
+                    </table>
+                    <div id="emptyState" class="empty-state" style="display:none">
+                        <p>📭 还没有记录</p>
+                        <p class="empty-hint">点击「示例数据」快速体验，或直接添加你的第一笔记录</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 图表区 -->
+        <section class="charts-section">
+            <div class="panel chart-panel">
+                <h2 class="panel-title">分类占比</h2>
+                <canvas id="pieChart" width="320" height="280"></canvas>
+                <div id="pieLegend" class="chart-legend"></div>
+            </div>
+            <div class="panel chart-panel">
+                <h2 class="panel-title">每日趋势</h2>
+                <canvas id="lineChart" width="420" height="280"></canvas>
+            </div>
+            <div class="panel chart-panel">
+                <h2 class="panel-title">近6月收支对比</h2>
+                <canvas id="barChart" width="420" height="280"></canvas>
+            </div>
+        </section>
+
+        <!-- 智能分析 -->
+        <section class="analysis-section">
+            <div class="panel analysis-panel">
+                <h2 class="panel-title">🤖 智能分析</h2>
+                <div id="analysisContent" class="analysis-content">
+                    <div class="analysis-placeholder">添加记录后，这里会自动生成消费洞察</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 云端同步设置弹窗 -->
+    <div id="settingsModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>☁ 云端同步设置</h2>
+                <button id="closeSettings" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">配置后，数据将自动同步到 Gitee 私有仓库，支持多台电脑共享。</p>
+                <div class="form-group">
+                    <label>仓库所有者（owner）</label>
+                    <input type="text" id="ownerInput" placeholder="如 yourname" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>仓库名（repo）</label>
+                    <input type="text" id="repoInput" placeholder="如 accounting" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>文件路径</label>
+                    <input type="text" id="pathInput" value="data.json" class="form-input">
+                    <small>默认 data.json，仓库里会自动创建</small>
+                </div>
+                <div class="form-group">
+                    <label>私人令牌（access token）</label>
+                    <input type="password" id="tokenInput" placeholder="如 gitee_pat_xxxxx" class="form-input">
+                    <small>在 Gitee「设置 → 私人令牌」生成，权限勾选 <strong>projects</strong></small>
+                </div>
+                <div id="testResult" class="test-result"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="testConnBtn" class="btn btn-outline">测试连接</button>
+                <button id="saveConfigBtn" class="btn btn-primary">保存配置</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/import-data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/analysis.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

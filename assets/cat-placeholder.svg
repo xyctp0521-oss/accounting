@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="fur" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff5e6"/>
+      <stop offset="100%" stop-color="#ffd699"/>
+    </linearGradient>
+  </defs>
+  <!-- 身体 -->
+  <ellipse cx="60" cy="78" rx="34" ry="28" fill="url(#fur)" stroke="#e6b366" stroke-width="2"/>
+  <!-- 头 -->
+  <circle cx="60" cy="48" r="26" fill="url(#fur)" stroke="#e6b366" stroke-width="2"/>
+  <!-- 耳朵 -->
+  <path d="M38 30 L32 12 L50 26 Z" fill="#ffd699" stroke="#e6b366" stroke-width="2"/>
+  <path d="M82 30 L88 12 L70 26 Z" fill="#ffd699" stroke="#e6b366" stroke-width="2"/>
+  <!-- 眼睛 -->
+  <circle cx="50" cy="44" r="3" fill="#333"/>
+  <circle cx="70" cy="44" r="3" fill="#333"/>
+  <!-- 捂嘴的小手 -->
+  <ellipse cx="60" cy="58" rx="10" ry="7" fill="#fff" stroke="#e6b366" stroke-width="1.5"/>
+  <!-- 腮红 -->
+  <ellipse cx="42" cy="54" rx="4" ry="2.5" fill="#ffb3b3" opacity="0.7"/>
+  <ellipse cx="78" cy="54" rx="4" ry="2.5" fill="#ffb3b3" opacity="0.7"/>
+  <!-- 脚 -->
+  <ellipse cx="44" cy="102" rx="7" ry="5" fill="#fff" stroke="#e6b366" stroke-width="1.5"/>
+  <ellipse cx="76" cy="102" rx="7" ry="5" fill="#fff" stroke="#e6b366" stroke-width="1.5"/>
+  <!-- 尾巴 -->
+  <path d="M88 82 Q110 70 108 50" fill="none" stroke="#e6b366" stroke-width="4" stroke-linecap="round"/>
+</svg>

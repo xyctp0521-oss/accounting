@@ -1,0 +1,13 @@
+# 开发环境
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# WorkBuddy 内部
+.workbuddy/
+scripts/
+
+# 依赖/node 临时文件
+node_modules/
+*.log
