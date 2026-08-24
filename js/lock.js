@@ -3,13 +3,13 @@
  * ⚠️ 静态站点无法做真正的密码保护：PIN 硬编码于源码，任何人查看网页源码即可看到；
  *    本地数据存于浏览器 localStorage，仍可通过开发者工具读取。
  *    本门禁仅用于防止他人随手打开查看账目。
+ *
+ * 行为：每次整页刷新都要求输入 PIN。正常操作（增删改）不会触发重新验证。
  */
 (function () {
     var PIN = '521412';
-    var SESSION_KEY = 'tianpao_unlocked';
 
     function unlock() {
-        try { sessionStorage.setItem(SESSION_KEY, '1'); } catch (e) {}
         document.body.classList.remove('is-locked');
         var overlay = document.getElementById('pinLock');
         if (overlay) overlay.style.display = 'none';
@@ -29,10 +29,7 @@
             // 容错：若门禁元素缺失，直接放行，避免部署异常把用户锁死
             if (!overlay || !input || !btn) { unlock(); return; }
 
-            try {
-                if (sessionStorage.getItem(SESSION_KEY) === '1') { unlock(); return; }
-            } catch (e) {}
-
+            // 每次刷新都锁定，要求输入 PIN
             lock();
 
             function attempt() {
