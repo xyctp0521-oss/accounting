@@ -5,6 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小羊记账 - 个人智能记账系统</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* PIN 门禁 */
+        #pinLock {
+            position: fixed; inset: 0; z-index: 99999;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        #pinLock .pin-card {
+            background: #fff; border-radius: 16px; padding: 32px 28px;
+            width: 300px; box-shadow: 0 12px 40px rgba(0,0,0,.2); text-align: center;
+        }
+        #pinLock .pin-emoji { font-size: 40px; }
+        #pinLock h2 { margin: 8px 0 4px; font-size: 18px; color: #333; }
+        #pinLock .pin-hint { font-size: 12px; color: #999; margin-bottom: 16px; }
+        #pinLock input {
+            width: 100%; box-sizing: border-box; padding: 12px; font-size: 18px;
+            text-align: center; letter-spacing: 6px; border: 2px solid #f0f0f0;
+            border-radius: 10px; outline: none;
+        }
+        #pinLock input:focus { border-color: #fda085; }
+        #pinLock button {
+            margin-top: 14px; width: 100%; padding: 12px; font-size: 16px;
+            border: none; border-radius: 10px; background: #ff7875; color: #fff; cursor: pointer;
+        }
+        #pinLock button:active { transform: scale(.98); }
+        #pinLock .pin-error { color: #ff4d4f; font-size: 13px; min-height: 18px; margin-top: 8px; }
+        body.is-locked #app { display: none; }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -225,11 +255,24 @@
         </div>
     </div>
 
-    <script src="js/import-data.js"></script>
+        <!-- PIN 门禁 -->
+    <div id="pinLock">
+        <div class="pin-card">
+            <div class="pin-emoji">🔒</div>
+            <h2>小羊记账</h2>
+            <p class="pin-hint">请输入密码以查看账目</p>
+            <input type="password" id="pinInput" inputmode="numeric" maxlength="12" placeholder="••••••" autocomplete="off">
+            <button id="pinSubmit">解锁</button>
+            <div class="pin-error" id="pinError"></div>
+        </div>
+    </div>
+
+<script src="js/import-data.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/charts.js"></script>
     <script src="js/analysis.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/lock.js"></script>
 </body>
 </html>
