@@ -7,7 +7,8 @@ input, select { font-family: inherit; }
 /* ===== Header ===== */
 .header { display: flex; align-items: center; justify-content: space-between; background: rgb(180, 168, 182); padding: 0 24px; height: 70px; box-shadow: 0 1px 4px rgba(0,0,0,.08); position: sticky; top: 0; z-index: 100; }
 .header-left { display: flex; align-items: center; gap: 16px; }
-.header-left .logo { font-size: 20px; font-weight: 700; color: #1a1a2e; white-space: nowrap; }
+.header-left .logo { font-size: 20px; font-weight: 700; color: #1a1a2e; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.logo-img { height: 34px; width: 34px; border-radius: 8px; object-fit: cover; }
 .month-nav { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.35); padding: 4px 10px; border-radius: 8px; }
 .month-display { font-size: 16px; font-weight: 600; min-width: 100px; text-align: center; }
 .header-center { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; height: 100%; }
