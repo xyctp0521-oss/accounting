@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小羊记账 - 个人智能记账系统</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/style.css">
     <style>
         /* PIN 门禁 */
         #pinLock {
@@ -41,7 +40,7 @@
         <!-- 顶部导航 -->
         <header class="header">
             <div class="header-left">
-                <h1 class="logo">🐑 小羊记账</h1>
+                <h1 class="logo"><img src="assets/logo.png" alt="小羊" class="logo-img">小羊记账</h1>
                 <div class="month-nav">
                     <button id="prevMonth" class="btn-icon">‹</button>
                     <span id="currentMonth" class="month-display">2026年08月</span>
@@ -255,7 +254,7 @@
         </div>
     </div>
 
-        <!-- PIN 门禁 -->
+    <!-- PIN 门禁 -->
     <div id="pinLock">
         <div class="pin-card">
             <div class="pin-emoji">🔒</div>
@@ -267,11 +266,13 @@
         </div>
     </div>
 
-<script src="js/import-data.js"></script>
+    <script src="js/import-data.js"></script>
     <script src="js/storage.js"></script>
+    <script src="js/cloud-config.js"></script>
     <script src="js/charts.js"></script>
     <script src="js/analysis.js"></script>
     <script src="js/settings.js"></script>
+    <script src="js/cloud-seed.js"></script>
     <script src="js/app.js"></script>
     <script src="js/lock.js"></script>
 </body>
