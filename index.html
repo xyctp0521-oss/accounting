@@ -55,6 +55,7 @@
             <div class="header-right">
                 <span id="syncStatus" class="sync-status sync-local"><span class="sync-icon">○</span> 本地</span>
                 <button id="settingsBtn" class="btn btn-outline" title="云端同步设置">⚙ 同步</button>
+                <button id="reportBtn" class="btn btn-primary" title="年度报表">报表</button>
                 <button id="exportBtn" class="btn btn-outline">导出CSV</button>
             </div>
         </header>
@@ -254,6 +255,55 @@
         </div>
     </div>
 
+    <!-- 年度报表视图 -->
+    <div id="annualView" class="annual-view">
+        <div class="annual-header">
+            <button id="annualBack" class="btn btn-icon" title="返回记账">‹</button>
+            <span class="annual-title">年度报表</span>
+            <div class="annual-year-nav">
+                <button id="prevYear" class="btn btn-icon">‹</button>
+                <span id="annualYear">2026</span>
+                <button id="nextYear" class="btn btn-icon">›</button>
+            </div>
+        </div>
+        <div class="annual-body">
+            <div class="annual-cards">
+                <div class="a-card"><div class="a-label">全年收入</div><div class="a-value a-income" id="annualIncome">¥0.00</div></div>
+                <div class="a-card"><div class="a-label">全年支出</div><div class="a-value a-expense" id="annualExpense">¥0.00</div></div>
+                <div class="a-card"><div class="a-label">全年结余</div><div class="a-value a-balance" id="annualBalance">¥0.00</div></div>
+                <div class="a-card"><div class="a-label">储蓄率</div><div class="a-value a-rate" id="annualRate">0%</div></div>
+            </div>
+            <div class="annual-panel">
+                <h3>月度收支趋势（12 个月）<span class="a-hint">点击柱子可跳回该月明细</span></h3>
+                <canvas id="annualBar" width="900" height="300"></canvas>
+            </div>
+            <div class="annual-grid2">
+                <div class="annual-panel">
+                    <h3>年度花钱去向</h3>
+                    <canvas id="annualPie" width="320" height="300"></canvas>
+                </div>
+                <div class="annual-panel">
+                    <h3>分类排行</h3>
+                    <ul id="annualCatList" class="a-cat-list"></ul>
+                    <p class="a-hint">点击某一分类，可在下方查看该分类全年逐月变化</p>
+                </div>
+            </div>
+            <div class="annual-panel">
+                <h3>分类逐月趋势</h3>
+                <canvas id="annualCatDetail" width="900" height="220"></canvas>
+                <div id="annualCatHint" class="a-hint">点击上方分类查看趋势</div>
+            </div>
+            <div class="annual-panel">
+                <h3>成员年度对比</h3>
+                <div id="annualMember" class="a-member"></div>
+            </div>
+            <div class="annual-panel">
+                <h3>年度趣味洞察</h3>
+                <div id="annualInsight" class="a-insight-grid"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- PIN 门禁 -->
     <div id="pinLock">
         <div class="pin-card">
@@ -274,6 +324,7 @@
     <script src="js/settings.js"></script>
     <script src="js/cloud-seed.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/annual.js"></script>
     <script src="js/lock.js"></script>
 </body>
 </html>

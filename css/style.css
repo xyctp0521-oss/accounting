@@ -233,3 +233,114 @@ input, select { font-family: inherit; }
 @media (max-width: 600px) {
     .sync-status { font-size: 11px; padding: 2px 6px; }
 }
+
+/* ===== 年度报表视图 ===== */
+.annual-view {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    background: #f0f2f5;
+    overflow-y: auto;
+    display: none;
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+.annual-view.show { display: block; }
+.annual-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    padding: 10px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+.annual-title { font-size: 18px; font-weight: 700; color: #1a1a2e; white-space: nowrap; }
+.annual-year-nav {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f5f5f5;
+    padding: 3px 10px;
+    border-radius: 8px;
+}
+#annualYear { font-size: 16px; font-weight: 600; min-width: 68px; text-align: center; color: #333; }
+.annual-body { max-width: 980px; margin: 0 auto; padding: 16px; }
+.annual-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 16px;
+}
+.a-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.a-card .a-label { font-size: 13px; color: #999; }
+.a-card .a-value { font-size: 23px; font-weight: 700; margin-top: 4px; }
+.a-income { color: #52c41a; }
+.a-expense { color: #ff4d4f; }
+.a-balance { color: #1890ff; }
+.a-rate { color: #722ed1; }
+.annual-panel {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    padding: 16px 18px;
+    margin-bottom: 16px;
+}
+.annual-panel h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.annual-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.annual-grid2 .annual-panel { margin-bottom: 0; }
+.annual-panel canvas { display: block; max-width: 100%; margin: 0 auto; }
+.a-hint { font-size: 12px; color: #aaa; font-weight: 400; }
+.a-cat-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.a-cat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.a-cat-item:hover { background: #f5f5f5; }
+.a-cat-item.active { background: #fff7e6; }
+.a-cat-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.a-cat-name { width: 52px; font-size: 13px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a-cat-barwrap { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
+.a-cat-bar { height: 100%; border-radius: 4px; min-width: 2px; }
+.a-cat-amt { width: 86px; text-align: right; font-size: 13px; color: #555; font-variant-numeric: tabular-nums; }
+.a-cat-pct { width: 40px; text-align: right; font-size: 12px; color: #aaa; }
+.a-member { display: flex; flex-direction: column; gap: 12px; }
+.a-member-row { display: flex; align-items: center; gap: 12px; }
+.a-member-row .user-tag { min-width: 40px; text-align: center; }
+.a-m-barwrap { flex: 1; height: 10px; background: #f0f0f0; border-radius: 5px; overflow: hidden; }
+.a-m-bar { height: 100%; border-radius: 5px; min-width: 2px; }
+.a-m-nums { font-size: 13px; color: #666; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.a-insight-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+.a-insight-item { background: #f8f9fa; border-radius: 10px; padding: 12px 14px; }
+.a-insight-value { font-size: 18px; font-weight: 700; color: #333; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a-insight-label { font-size: 12px; color: #999; }
+.a-empty { color: #999; text-align: center; padding: 18px 8px; font-size: 13px; }
+@media (max-width: 700px) {
+    .annual-cards { grid-template-columns: repeat(2, 1fr); }
+    .annual-grid2 { grid-template-columns: 1fr; }
+    .annual-header { padding: 8px 12px; }
+    .a-m-nums { font-size: 12px; }
+}

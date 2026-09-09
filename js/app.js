@@ -396,6 +396,12 @@ const App = (function () {
         }).join('');
     }
 
+    function jumpTo(y, m) {
+        if (!y || !m) return;
+        currentDate = new Date(y, m - 1, 1);
+        render();
+    }
+
     function exportCSV() {
         const entries = Storage.getAll();
         if (entries.length === 0) {
@@ -423,6 +429,7 @@ const App = (function () {
         startEdit,
         deleteEntry,
         updateSyncStatus,
+        jumpTo,
         refresh: render
     };
 })();
