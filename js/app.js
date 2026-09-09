@@ -15,6 +15,8 @@ const App = (function () {
         updateCategoryOptions();
         // 绑定事件
         bindEvents();
+        // 数据迁移：旧「娱乐/篮球」记录归入「运动」分类（本地幂等）
+        try { Storage.migrateSportCategories(); } catch (e) { console.warn('分类迁移失败:', e); }
         // 先用本地数据渲染（快速显示）
         render();
         // 如果配置了云端，从云端同步
@@ -24,6 +26,8 @@ const App = (function () {
                 const result = await Storage.syncFromCloud();
                 if (result.ok) {
                     updateSyncStatus('synced', result.count);
+                    // 云端合并后再次迁移（处理云端旧记录），改动会自动 push 回云端
+                    try { Storage.migrateSportCategories(); } catch (e) { console.warn('分类迁移失败:', e); }
                     render();
                 } else {
                     updateSyncStatus('offline');
@@ -101,7 +105,7 @@ const App = (function () {
 
         // 筛选
         document.getElementById('filterType').addEventListener('change', renderTable);
-        document.getElementById('filterCategory').addEventListener('change', renderTable);
+        document.getElementById('filterCategory').addEventListener('change', render);
         document.getElementById('filterUser').addEventListener('change', () => render());
 
         // 导出
@@ -211,6 +215,10 @@ const App = (function () {
         if (userFilter !== 'all') {
             entries = entries.filter(e => e.user === userFilter);
         }
+        const catFilter = document.getElementById('filterCategory').value;
+        if (catFilter !== 'all') {
+            entries = entries.filter(e => e.category === catFilter);
+        }
         const income = entries.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
         const expense = entries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
         const balance = income - expense;
@@ -285,7 +293,8 @@ const App = (function () {
 
     function renderFilterCategories(y, m) {
         const entries = Storage.getEntriesByMonth(y, m);
-        const cats = [...new Set(entries.map(e => e.category))];
+        const preset = Storage.CATEGORIES.expense.concat(Storage.CATEGORIES.income);
+        const cats = [...new Set(preset.concat(entries.map(e => e.category)))];
         const sel = document.getElementById('filterCategory');
         const current = sel.value;
         sel.innerHTML = '<option value="all">全部分类</option>';

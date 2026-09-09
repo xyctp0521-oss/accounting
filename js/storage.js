@@ -6,13 +6,13 @@ const Storage = (function () {
     const KEY = 'tianpao_accounting_data';
 
     const CATEGORIES = {
-        expense: ['餐饮', '奶茶', '交通', '购物', '住房', '娱乐', '医疗', '教育', '通讯', '社交', '其他'],
+        expense: ['餐饮', '奶茶', '交通', '购物', '住房', '娱乐', '运动', '医疗', '教育', '通讯', '社交', '其他'],
         income: ['工资', '奖金', '投资', '兼职', '礼金', '其他']
     };
 
     const COLORS = {
         '餐饮': '#ff7875', '奶茶': '#a0522d', '交通': '#ffa940', '购物': '#ffc53d', '住房': '#73d13d',
-        '娱乐': '#36cfc9', '医疗': '#5cdbd3', '教育': '#40a9ff', '通讯': '#597ef7',
+        '娱乐': '#36cfc9', '运动': '#8bc34a', '医疗': '#5cdbd3', '教育': '#40a9ff', '通讯': '#597ef7',
         '社交': '#9254de', '其他': '#f759ab',
         '工资': '#52c41a', '奖金': '#73d13d', '投资': '#95de64', '兼职': '#b7eb8f',
         '礼金': '#d9f7be', '其他': '#bae637'
@@ -241,6 +241,23 @@ const Storage = (function () {
         return entry;
     }
 
+    // 数据迁移：把备注含「篮球」的娱乐记录归入「运动」分类（幂等，可重复执行）
+    function migrateSportCategories() {
+        let changed = 0;
+        const next = load().map(e => {
+            if (e && e.category === '娱乐' && /篮球/.test(e.note || '')) {
+                changed += 1;
+                return Object.assign({}, e, { category: '运动' });
+            }
+            return e;
+        });
+        if (changed > 0) {
+            save(next);
+            console.log('[小羊记账] 已将 ' + changed + ' 条篮球相关记录迁移到「运动」分类');
+        }
+        return changed;
+    }
+
     function update(id, updates) {
         const entries = load();
         const idx = entries.findIndex(e => e.id === id);
@@ -373,6 +390,7 @@ const Storage = (function () {
         getEntriesByMonth,
         getMonthlySummary,
         generateSampleData,
+        migrateSportCategories,
         save,
         load,
         CloudSync,
