@@ -5,24 +5,77 @@
 const Storage = (function () {
     const KEY = 'tianpao_accounting_data';
 
+    // ===== 两级分类：大类 -> 小类 =====
+    const CATEGORY_TREE = {
+        expense: [
+            { name: '出行', subs: ['购车', '养车', '日常交通'] },
+            { name: '吃喝', subs: ['日常三餐', '聚餐外食', '买菜食材', '零食饮料', '奶茶'] },
+            { name: '购物', subs: ['服饰鞋包', '日用小物', '数码配件', '潮玩盲盒', '综合采购'] },
+            { name: '居住', subs: ['住房', '家居日用', '通讯'] },
+            { name: '人情', subs: ['人情礼金', '社交'] },
+            { name: '贷款', subs: ['房贷', '车贷'] },
+            { name: '休闲', subs: ['娱乐', '游戏', '运动', '旅行出游'] },
+            { name: '美容个护', subs: ['美容服务', '护肤彩妆'] },
+            { name: '健康学习', subs: ['医疗', '教育'] },
+            { name: '其他', subs: ['其他'] }
+        ],
+        income: [
+            { name: '收入', subs: ['工资', '奖金', '投资', '兼职', '礼金', '其他'] }
+        ]
+    };
+
+    // 平铺的小类列表（向后兼容，筛选/统计兜底用）
     const CATEGORIES = {
-        expense: ['餐饮', '奶茶', '交通', '养车', '购车', '贷款', '住房', '家居日用', '购物', '美容个护',
-            '娱乐', '游戏', '人情礼金', '旅行出游', '运动', '医疗', '教育', '通讯', '社交', '其他'],
-        income: ['工资', '奖金', '投资', '兼职', '礼金', '其他']
+        expense: CATEGORY_TREE.expense.reduce((arr, g) => arr.concat(g.subs), []),
+        income: CATEGORY_TREE.income.reduce((arr, g) => arr.concat(g.subs), [])
+    };
+
+    // 小类 -> 大类
+    const GROUP_OF = {};
+    Object.keys(CATEGORY_TREE).forEach(type => {
+        CATEGORY_TREE[type].forEach(g => {
+            g.subs.forEach(s => { GROUP_OF[s] = g.name; });
+        });
+    });
+
+    const GROUP_COLORS = {
+        '出行': '#fa8c16', '吃喝': '#ff7875', '购物': '#ffc53d', '居住': '#73d13d',
+        '人情': '#eb2f96', '贷款': '#a8071a', '休闲': '#36cfc9', '美容个护': '#f759ab',
+        '健康学习': '#40a9ff', '其他': '#bfbfbf', '收入': '#52c41a'
     };
 
     const COLORS = {
-        '餐饮': '#ff7875', '奶茶': '#a0522d', '交通': '#ffa940', '购物': '#ffc53d', '住房': '#73d13d',
-        '娱乐': '#36cfc9', '运动': '#8bc34a', '医疗': '#5cdbd3', '教育': '#40a9ff', '通讯': '#597ef7',
-        '社交': '#9254de', '其他': '#f759ab',
-        '养车': '#fa8c16', '购车': '#cf1322', '贷款': '#a8071a', '家居日用': '#a0d911',
-        '美容个护': '#ff85c0', '游戏': '#722ed1', '人情礼金': '#eb2f96', '旅行出游': '#13c2c2',
+        '奶茶': '#a0522d', '教育': '#40a9ff', '通讯': '#597ef7',
+        '社交': '#9254de', '养车': '#fa8c16', '购车': '#cf1322', '家居日用': '#a0d911',
+        '游戏': '#722ed1', '人情礼金': '#eb2f96', '旅行出游': '#13c2c2',
         '工资': '#52c41a', '奖金': '#73d13d', '投资': '#95de64', '兼职': '#b7eb8f',
         '礼金': '#d9f7be'
     };
 
+    // 小类颜色：优先自身定义，其次继承所属大类
     function getCategoryColor(cat) {
-        return COLORS[cat] || '#999';
+        return COLORS[cat] || GROUP_COLORS[GROUP_OF[cat]] || '#999';
+    }
+
+    function getGroup(cat) {
+        return GROUP_OF[cat] || '其他';
+    }
+
+    function getGroupColor(group) {
+        return GROUP_COLORS[group] || '#999';
+    }
+
+    // 把 hex 颜色按 index 派生出同色系深浅（大类下钻到小类时用）
+    function shadeColor(hex, index, total) {
+        const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '#999999');
+        if (!m) return hex;
+        let r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16);
+        const step = total > 1 ? index / (total - 1) : 0;
+        const k = 0.72 + 0.5 * step; // 0.72 -> 1.22，越靠后越亮
+        r = Math.min(255, Math.round(r * k));
+        g = Math.min(255, Math.round(g * k));
+        b = Math.min(255, Math.round(b * k));
+        return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
     }
 
     // ── 云端同步层 (Gitee 仓库 API) ──
@@ -518,7 +571,12 @@ const Storage = (function () {
 
     return {
         CATEGORIES,
+        CATEGORY_TREE,
+        GROUP_OF,
         getCategoryColor,
+        getGroup,
+        getGroupColor,
+        shadeColor,
         add,
         update,
         remove,
