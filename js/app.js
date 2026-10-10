@@ -7,7 +7,9 @@ const App = (function () {
     let selectedType = 'expense';
     let sortBy = 'date';
     let sortDir = 'desc';
-    let mainOtherCats = [];   // 主界面饼图被合并进「其他」的分类
+    let mainOtherCats = [];   // 主界面饼图被合并进「其他」的分类（大类模式下不再使用）
+    let pieLevel = 'group';       // 'group' 大类层 / 'sub' 小类层
+    let pieActiveGroup = null;    // 下钻中的大类
 
     async function init() {
         // 默认日期设为今天
@@ -128,33 +130,72 @@ const App = (function () {
         // 导出
         document.getElementById('exportBtn').addEventListener('click', exportCSV);
 
-        // 点击饼图 / 图例 → 弹出该分类金额 Top10
+        // 点击饼图 / 图例 → 大类层下钻到小类，小类层弹出 Top10
         const pie = document.getElementById('pieChart');
         if (pie) {
             pie.style.cursor = 'pointer';
             pie.addEventListener('click', ev => {
                 const rect = pie.getBoundingClientRect();
                 const cat = Charts.pieHitTest(pie, ev.clientX - rect.left, ev.clientY - rect.top);
-                if (cat) showCategoryTop(cat);
+                if (cat) onPieSelect(cat);
             });
         }
         const legend = document.getElementById('pieLegend');
         if (legend) {
             legend.style.cursor = 'pointer';
             legend.addEventListener('click', ev => {
+                if (ev.target.closest('.legend-back')) { exitPieDrill(); return; }
                 const item = ev.target.closest('.legend-item');
-                if (item && item.dataset.cat) showCategoryTop(item.dataset.cat);
+                if (item && item.dataset.cat) onPieSelect(item.dataset.cat);
             });
         }
     }
 
-    // 当前月的某分类支出 Top10
-    function showCategoryTop(cat) {
+    // 大类 -> 其下所有小类（含数据里出现过的历史分类）
+    function catsOfGroup(group) {
+        const tree = Storage.CATEGORY_TREE.expense || [];
+        const grp = tree.find(x => x.name === group);
+        const subs = grp ? grp.subs.slice() : [group];
+        Storage.getAll().forEach(e => {
+            if (Storage.getGroup(e.category) === group && subs.indexOf(e.category) < 0) subs.push(e.category);
+        });
+        return subs;
+    }
+
+    // 饼图/图例点击：大类层下钻，小类层弹 Top10
+    function onPieSelect(label) {
+        if (pieLevel === 'sub') {
+            showCategoryTop(label, false);
+            return;
+        }
+        const subs = catsOfGroup(label).filter(c => {
+            const g = Storage.getGroup(c);
+            return g === label;
+        });
+        if (subs.length > 1) {
+            pieActiveGroup = label;
+            pieLevel = 'sub';
+            renderPieChart(currentDate.getFullYear(), currentDate.getMonth());
+        } else {
+            showCategoryTop(label, true);
+        }
+    }
+
+    function exitPieDrill() {
+        pieLevel = 'group';
+        pieActiveGroup = null;
+        renderPieChart(currentDate.getFullYear(), currentDate.getMonth());
+    }
+
+    // 当前月的某分类（或某大类）支出 Top10
+    function showCategoryTop(cat, isGroup) {
         if (typeof Extras === 'undefined' || !Extras.showCategoryTop) return;
         const y = currentDate.getFullYear(), m = currentDate.getMonth();
         const entries = Storage.getEntriesByMonth(y, m);
-        const cats = cat === '其他' ? (mainOtherCats.length ? mainOtherCats : ['其他']) : cat;
-        Extras.showCategoryTop(cats, entries, y + '年' + (m + 1) + '月');
+        let cats = cat;
+        if (isGroup) cats = catsOfGroup(cat);
+        else if (cat === '其他') cats = mainOtherCats.length ? mainOtherCats : ['其他'];
+        Extras.showCategoryTop(cats, entries, y + '年' + (m + 1) + '月', isGroup ? cat : null);
     }
 
     // ===== 搜索 =====
@@ -172,8 +213,16 @@ const App = (function () {
         if (el) el.value = '';
     }
 
+    // 表格里的分类：小类为主，前面带淡色大类
+    function categoryCell(cat) {
+        const g = Storage.getGroup(cat);
+        if (!g || g === cat) return escapeHtml(cat || '');
+        return '<span class="cat-group">' + escapeHtml(g) + '</span>' + escapeHtml(cat);
+    }
+
     function matchEntry(e, kw) {
-        const hay = [e.date, e.category, e.user, e.note, String(e.amount), e.type === 'income' ? '收入' : '支出']
+        const hay = [e.date, e.category, Storage.getGroup(e.category), e.user, e.note,
+            String(e.amount), e.type === 'income' ? '收入' : '支出']
             .join(' ').toLowerCase();
         return hay.indexOf(kw) >= 0;
     }
@@ -193,7 +242,14 @@ const App = (function () {
         const fc = document.getElementById('filterCategory').value;
         const fu = document.getElementById('filterUser').value;
         if (ft !== 'all') entries = entries.filter(e => e.type === ft);
-        if (fc !== 'all') entries = entries.filter(e => e.category === fc);
+        if (fc !== 'all') {
+            if (fc.indexOf('g:') === 0) {
+                const g = fc.slice(2);
+                entries = entries.filter(e => Storage.getGroup(e.category) === g);
+            } else {
+                entries = entries.filter(e => e.category === fc);
+            }
+        }
         if (fu !== 'all') entries = entries.filter(e => e.user === fu);
         return entries;
     }
@@ -224,15 +280,41 @@ const App = (function () {
         labels.forEach((el, i) => { if (texts[i]) el.textContent = texts[i]; });
     }
 
+    // 分类下拉按大类分组（optgroup）；收入只有一个组时不分组展示
     function updateCategoryOptions() {
         const sel = document.getElementById('entryCategory');
         sel.innerHTML = '';
-        Storage.CATEGORIES[selectedType].forEach(cat => {
-            const opt = document.createElement('option');
-            opt.value = cat;
-            opt.textContent = cat;
-            sel.appendChild(opt);
+        const groups = Storage.CATEGORY_TREE[selectedType] || [];
+        const onlyOne = groups.length === 1;
+        groups.forEach(g => {
+            let parent = sel;
+            if (!onlyOne) {
+                const og = document.createElement('optgroup');
+                og.label = g.name;
+                sel.appendChild(og);
+                parent = og;
+            }
+            g.subs.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = onlyOne ? cat : cat;
+                parent.appendChild(opt);
+            });
         });
+        // 兜底：数据里存在但不在分类表里的旧分类，补在最后避免编辑时丢失
+        const known = {};
+        groups.forEach(g => g.subs.forEach(s => { known[s] = 1; }));
+        const extra = [...new Set(Storage.getAll().map(e => e.category).filter(c => c && !known[c]))];
+        if (extra.length) {
+            const og = document.createElement('optgroup');
+            og.label = '历史分类';
+            sel.appendChild(og);
+            extra.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat; opt.textContent = cat;
+                og.appendChild(opt);
+            });
+        }
     }
 
     function handleSubmit(e) {
@@ -379,7 +461,7 @@ const App = (function () {
             tr.innerHTML = `
                 <td>${e.date}</td>
                 <td>${typeTag}</td>
-                <td>${e.category}</td>
+                <td>${categoryCell(e.category)}</td>
                 <td>${userTag}</td>
                 <td class="${amountClass}">${amountStr}</td>
                 <td style="color:#999;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.note || '-'}</td>
@@ -392,20 +474,56 @@ const App = (function () {
         });
     }
 
+    // 筛选下拉：按大类分组，只列出当前范围内实际用到的分类
     function renderFilterCategories(y, m) {
-        const entries = Storage.getEntriesByMonth(y, m);
-        const preset = Storage.CATEGORIES.expense.concat(Storage.CATEGORIES.income);
-        const cats = [...new Set(preset.concat(entries.map(e => e.category)))];
+        const kw = rawKeyword();
+        const scope = kw ? Storage.getAll() : Storage.getEntriesByMonth(y, m);
+        const used = {};
+        scope.forEach(e => { if (e.category) used[e.category] = (used[e.category] || 0) + 1; });
+
         const sel = document.getElementById('filterCategory');
         const current = sel.value;
         sel.innerHTML = '<option value="all">全部分类</option>';
-        cats.forEach(cat => {
-            const opt = document.createElement('option');
-            opt.value = cat;
-            opt.textContent = cat;
-            sel.appendChild(opt);
+
+        const tree = Storage.CATEGORY_TREE.expense || [];
+        const known = {};
+        tree.forEach(g => g.subs.forEach(s => { known[s] = 1; }));
+
+        tree.forEach(g => {
+            const subs = g.subs.filter(s => used[s]);
+            if (!subs.length) return;
+            const og = document.createElement('optgroup');
+            og.label = g.name;
+            if (subs.length > 1) {
+                const allOpt = document.createElement('option');
+                allOpt.value = 'g:' + g.name;
+                allOpt.textContent = g.name + '（全部）';
+                og.appendChild(allOpt);
+            }
+            subs.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                og.appendChild(opt);
+            });
+            sel.appendChild(og);
         });
+
+        const extra = Object.keys(used).filter(c => c && !known[c]);
+        if (extra.length) {
+            const og = document.createElement('optgroup');
+            og.label = '其他';
+            extra.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                og.appendChild(opt);
+            });
+            sel.appendChild(og);
+        }
+
         sel.value = current;
+        if (sel.selectedIndex < 0) sel.value = 'all';
     }
 
     function updateSortIndicators() {
@@ -424,33 +542,46 @@ const App = (function () {
     }
 
     function renderPieChart(y, m) {
-        const s = Storage.getMonthlySummary(y, m);
-        const rows = s.expense > 0 ? Object.entries(s.byCategory)
-            .map(([cat, amt]) => ({ label: cat, value: amt, color: Storage.getCategoryColor(cat) }))
-            .sort((a, b) => b.value - a.value) : [];
+        const entries = Storage.getEntriesByMonth(y, m).filter(e => e.type === 'expense');
+        const legend = document.getElementById('pieLegend');
+        legend.innerHTML = '';
+        let data = [];
 
-        // 分类较多时合并尾部为「其他」，避免新分类被直接切掉
-        mainOtherCats = [];
-        let data = rows;
-        if (rows.length > 10) {
-            const top = rows.slice(0, 9);
-            const rest = rows.slice(9);
-            mainOtherCats = rest.map(r => r.label);
-            data = top.concat([{
-                label: '其他',
-                value: rest.reduce((sum, r) => sum + r.value, 0),
-                color: '#ccc'
-            }]);
+        if (pieLevel === 'sub' && pieActiveGroup) {
+            // 小类层：该大类下各小类，颜色取大类同色系深浅
+            const sums = {};
+            entries.forEach(e => {
+                if (Storage.getGroup(e.category) !== pieActiveGroup) return;
+                sums[e.category] = (sums[e.category] || 0) + (parseFloat(e.amount) || 0);
+            });
+            const rows = Object.entries(sums)
+                .map(([cat, amt]) => ({ label: cat, value: amt }))
+                .sort((a, b) => b.value - a.value);
+            const base = Storage.getGroupColor(pieActiveGroup);
+            data = rows.map((d, i) => ({ label: d.label, value: d.value, color: Storage.shadeColor(base, i, Math.max(rows.length, 2)) }));
+        } else {
+            // 大类层：按所属大类聚合
+            const sums = {};
+            entries.forEach(e => {
+                const g = Storage.getGroup(e.category);
+                sums[g] = (sums[g] || 0) + (parseFloat(e.amount) || 0);
+            });
+            data = Object.entries(sums)
+                .map(([g, amt]) => ({ label: g, value: amt, color: Storage.getGroupColor(g) }))
+                .sort((a, b) => b.value - a.value);
         }
 
         Charts.drawPie(document.getElementById('pieChart'), data);
 
-        // 图例
-        const legend = document.getElementById('pieLegend');
-        legend.innerHTML = '';
+        const total = data.reduce((s, x) => s + x.value, 0);
+        if (pieLevel === 'sub' && pieActiveGroup) {
+            const back = document.createElement('div');
+            back.className = 'legend-back';
+            back.textContent = '← 返回「' + pieActiveGroup + '」上级';
+            legend.appendChild(back);
+        }
         data.forEach(d => {
-            const total = data.reduce((s, x) => s + x.value, 0);
-            const pct = (d.value / total * 100).toFixed(1);
+            const pct = total > 0 ? (d.value / total * 100).toFixed(1) : '0.0';
             const item = document.createElement('div');
             item.className = 'legend-item';
             item.dataset.cat = d.label;
