@@ -7,6 +7,7 @@ const App = (function () {
     let selectedType = 'expense';
     let sortBy = 'date';
     let sortDir = 'desc';
+    let mainOtherCats = [];   // 主界面饼图被合并进「其他」的分类
 
     async function init() {
         // 默认日期设为今天
@@ -17,8 +18,14 @@ const App = (function () {
         bindEvents();
         // 数据迁移：旧「娱乐/篮球」记录归入「运动」分类（本地幂等）
         try { Storage.migrateSportCategories(); } catch (e) { console.warn('分类迁移失败:', e); }
+        // 扩展功能（固定支出 / 储值卡）
+        try { Extras.init(); } catch (e) { console.warn('扩展功能初始化失败:', e); }
         // 先用本地数据渲染（快速显示）
         render();
+        // 同步元数据（固定支出模板 / 储值卡）
+        Storage.syncMeta().then(() => {
+            try { render(); } catch (e) { /* ignore */ }
+        }).catch(() => {});
         // 如果配置了云端，从云端同步
         if (Storage.CloudSync.isConfigured()) {
             updateSyncStatus('syncing');
@@ -62,15 +69,25 @@ const App = (function () {
     }
 
     function bindEvents() {
-        // 月份导航
+        // 月份导航（切换月份时清空搜索）
         document.getElementById('prevMonth').addEventListener('click', () => {
+            clearSearch();
             currentDate.setMonth(currentDate.getMonth() - 1);
             render();
         });
         document.getElementById('nextMonth').addEventListener('click', () => {
+            clearSearch();
             currentDate.setMonth(currentDate.getMonth() + 1);
             render();
         });
+
+        // 全局搜索
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => render());
+            const clearBtn = document.getElementById('clearSearch');
+            if (clearBtn) clearBtn.addEventListener('click', () => { clearSearch(); render(); });
+        }
 
         // 类型切换
         document.querySelectorAll('.type-btn').forEach(btn => {
@@ -110,6 +127,101 @@ const App = (function () {
 
         // 导出
         document.getElementById('exportBtn').addEventListener('click', exportCSV);
+
+        // 点击饼图 / 图例 → 弹出该分类金额 Top10
+        const pie = document.getElementById('pieChart');
+        if (pie) {
+            pie.style.cursor = 'pointer';
+            pie.addEventListener('click', ev => {
+                const rect = pie.getBoundingClientRect();
+                const cat = Charts.pieHitTest(pie, ev.clientX - rect.left, ev.clientY - rect.top);
+                if (cat) showCategoryTop(cat);
+            });
+        }
+        const legend = document.getElementById('pieLegend');
+        if (legend) {
+            legend.style.cursor = 'pointer';
+            legend.addEventListener('click', ev => {
+                const item = ev.target.closest('.legend-item');
+                if (item && item.dataset.cat) showCategoryTop(item.dataset.cat);
+            });
+        }
+    }
+
+    // 当前月的某分类支出 Top10
+    function showCategoryTop(cat) {
+        if (typeof Extras === 'undefined' || !Extras.showCategoryTop) return;
+        const y = currentDate.getFullYear(), m = currentDate.getMonth();
+        const entries = Storage.getEntriesByMonth(y, m);
+        const cats = cat === '其他' ? (mainOtherCats.length ? mainOtherCats : ['其他']) : cat;
+        Extras.showCategoryTop(cats, entries, y + '年' + (m + 1) + '月');
+    }
+
+    // ===== 搜索 =====
+    function rawKeyword() {
+        const el = document.getElementById('searchInput');
+        return el ? (el.value || '').trim() : '';
+    }
+
+    function searchKeyword() {
+        return rawKeyword().toLowerCase();
+    }
+
+    function clearSearch() {
+        const el = document.getElementById('searchInput');
+        if (el) el.value = '';
+    }
+
+    function matchEntry(e, kw) {
+        const hay = [e.date, e.category, e.user, e.note, String(e.amount), e.type === 'income' ? '收入' : '支出']
+            .join(' ').toLowerCase();
+        return hay.indexOf(kw) >= 0;
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // 当前应展示的记录集：搜索态 = 全部记录中匹配项，否则 = 当月
+    function currentEntries() {
+        const kw = searchKeyword();
+        let entries = kw
+            ? Storage.getAll().filter(e => matchEntry(e, kw))
+            : Storage.getEntriesByMonth(currentDate.getFullYear(), currentDate.getMonth());
+
+        const ft = document.getElementById('filterType').value;
+        const fc = document.getElementById('filterCategory').value;
+        const fu = document.getElementById('filterUser').value;
+        if (ft !== 'all') entries = entries.filter(e => e.type === ft);
+        if (fc !== 'all') entries = entries.filter(e => e.category === fc);
+        if (fu !== 'all') entries = entries.filter(e => e.user === fu);
+        return entries;
+    }
+
+    function renderSearchInfo(entries) {
+        const info = document.getElementById('searchInfo');
+        const clearBtn = document.getElementById('clearSearch');
+        if (!info) return;
+        const kw = rawKeyword();
+        if (!kw) {
+            info.style.display = 'none';
+            if (clearBtn) clearBtn.style.display = 'none';
+            return;
+        }
+        if (clearBtn) clearBtn.style.display = '';
+        const expense = entries.filter(e => e.type === 'expense').reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        const income = entries.filter(e => e.type === 'income').reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        info.style.display = '';
+        info.innerHTML = '搜索「<strong>' + escapeHtml(kw) + '</strong>」· 全部记录中匹配 <strong>' + entries.length +
+            '</strong> 笔 · 支出 ¥' + expense.toFixed(2) + ' · 收入 ¥' + income.toFixed(2);
+    }
+
+    function updateSummaryLabels(isSearch) {
+        const labels = document.querySelectorAll('.summary-cards .card-label');
+        const texts = isSearch
+            ? ['搜索结果收入', '搜索结果支出', '搜索结果结余', '储蓄率']
+            : ['本月收入', '本月支出', '本月结余', '储蓄率'];
+        labels.forEach((el, i) => { if (texts[i]) el.textContent = texts[i]; });
     }
 
     function updateCategoryOptions() {
@@ -202,24 +314,22 @@ const App = (function () {
         // 月份显示
         document.getElementById('currentMonth').textContent = `${y}年${String(m + 1).padStart(2, '0')}月`;
 
-        renderSummary(y, m);
+        renderSummary();
         renderTable();
         renderFilterCategories(y, m);
         renderCharts(y, m);
         renderAnalysis(y, m);
+        // 固定支出待记账提示（仅非搜索态）
+        try {
+            if (typeof Extras !== 'undefined' && !searchKeyword()) Extras.renderTodoBar(y, m);
+        } catch (e) { console.warn('固定支出提示渲染失败:', e); }
     }
 
-    function renderSummary(y, m) {
-        const userFilter = document.getElementById('filterUser').value;
-        let entries = Storage.getEntriesByMonth(y, m);
-        if (userFilter !== 'all') {
-            entries = entries.filter(e => e.user === userFilter);
-        }
-        const catFilter = document.getElementById('filterCategory').value;
-        if (catFilter !== 'all') {
-            entries = entries.filter(e => e.category === catFilter);
-        }
-        const income = entries.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+    function renderSummary() {
+        const isSearch = !!searchKeyword();
+        updateSummaryLabels(isSearch);
+        const entries = currentEntries();
+        const income = entries.filter(e => e.type === 'income').reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
         const expense = entries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
         const balance = income - expense;
         document.getElementById('totalIncome').textContent = '¥' + income.toFixed(2);
@@ -230,17 +340,8 @@ const App = (function () {
     }
 
     function renderTable() {
-        const y = currentDate.getFullYear();
-        const m = currentDate.getMonth();
-        let entries = Storage.getEntriesByMonth(y, m);
-
-        // 筛选
-        const ft = document.getElementById('filterType').value;
-        const fc = document.getElementById('filterCategory').value;
-        const fu = document.getElementById('filterUser').value;
-        if (ft !== 'all') entries = entries.filter(e => e.type === ft);
-        if (fc !== 'all') entries = entries.filter(e => e.category === fc);
-        if (fu !== 'all') entries = entries.filter(e => e.user === fu);
+        const entries = currentEntries();
+        renderSearchInfo(entries);
 
         // 排序
         entries.sort((a, b) => {
@@ -324,10 +425,23 @@ const App = (function () {
 
     function renderPieChart(y, m) {
         const s = Storage.getMonthlySummary(y, m);
-        const data = s.expense > 0 ? Object.entries(s.byCategory)
+        const rows = s.expense > 0 ? Object.entries(s.byCategory)
             .map(([cat, amt]) => ({ label: cat, value: amt, color: Storage.getCategoryColor(cat) }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 8) : [];
+            .sort((a, b) => b.value - a.value) : [];
+
+        // 分类较多时合并尾部为「其他」，避免新分类被直接切掉
+        mainOtherCats = [];
+        let data = rows;
+        if (rows.length > 10) {
+            const top = rows.slice(0, 9);
+            const rest = rows.slice(9);
+            mainOtherCats = rest.map(r => r.label);
+            data = top.concat([{
+                label: '其他',
+                value: rest.reduce((sum, r) => sum + r.value, 0),
+                color: '#ccc'
+            }]);
+        }
 
         Charts.drawPie(document.getElementById('pieChart'), data);
 
@@ -339,6 +453,7 @@ const App = (function () {
             const pct = (d.value / total * 100).toFixed(1);
             const item = document.createElement('div');
             item.className = 'legend-item';
+            item.dataset.cat = d.label;
             item.innerHTML = `
                 <span class="legend-color" style="background:${d.color}"></span>
                 <span class="legend-label">${d.label}</span>

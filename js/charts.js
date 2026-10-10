@@ -27,16 +27,18 @@ const Charts = (function () {
         ctx.clearRect(0, 0, w, h);
 
         if (!data || data.length === 0) {
+            canvas.__pie = null;
             drawEmpty(ctx, w, h, '暂无支出数据');
             return;
         }
 
         const total = data.reduce((s, d) => s + d.value, 0);
-        if (total === 0) { drawEmpty(ctx, w, h, '暂无支出数据'); return; }
+        if (total === 0) { canvas.__pie = null; drawEmpty(ctx, w, h, '暂无支出数据'); return; }
 
         const cx = w / 2, cy = h / 2;
         const radius = Math.min(w, h) / 2 - 20;
         let angle = -Math.PI / 2;
+        const slices = [];
 
         // 绘制扇形
         data.forEach(item => {
@@ -65,8 +67,10 @@ const Charts = (function () {
                 ctx.fillText(pct.toFixed(0) + '%', lx, ly);
             }
 
+            slices.push({ label: item.label, start: angle, end: angle + slice });
             angle += slice;
         });
+        canvas.__pie = { cx, cy, radius, slices };
 
         // 中心镂空（甜甜圈效果）
         ctx.beginPath();
@@ -266,5 +270,23 @@ const Charts = (function () {
         return nf * Math.pow(10, exp);
     }
 
-    return { drawPie, drawLine, drawBar };
+    // 命中测试：根据画布内的 CSS 像素坐标返回被点击的扇区 label
+    function pieHitTest(canvas, x, y) {
+        const p = canvas && canvas.__pie;
+        if (!p || !p.slices || !p.slices.length) return null;
+        const dx = x - p.cx, dy = y - p.cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > p.radius || dist < p.radius * 0.5) return null;
+        let ang = Math.atan2(dy, dx);
+        const TWO = Math.PI * 2;
+        for (let i = 0; i < p.slices.length; i++) {
+            let a = ang;
+            while (a < p.slices[i].start) a += TWO;
+            while (a > p.slices[i].start + TWO) a -= TWO;
+            if (a >= p.slices[i].start && a < p.slices[i].end) return p.slices[i].label;
+        }
+        return null;
+    }
+
+    return { drawPie, drawLine, drawBar, pieHitTest };
 })();

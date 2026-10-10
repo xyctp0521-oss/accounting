@@ -28,6 +28,8 @@ const Storage = (function () {
     // ── 云端同步层 (Gitee 仓库 API) ──
     const PENDING_KEY = 'tianpao_cloud_pending';
     const DEFAULT_PATH = 'data.json';
+    const META_PATH = 'meta.json';
+    const META_KEY = 'tianpao_meta';
 
     function utf8_to_b64(str) {
         try {
@@ -74,6 +76,68 @@ const Storage = (function () {
             const { owner, repo, path: filePath } = this.getConfig();
             const encodedPath = encodeURIComponent(filePath || DEFAULT_PATH);
             return `https://gitee.com/api/v5/repos/${owner}/${repo}/contents/${encodedPath}${path ? '?' + path : ''}`;
+        },
+        _apiUrlFor(filePath, query) {
+            const { owner, repo } = this.getConfig();
+            const encodedPath = encodeURIComponent(filePath || DEFAULT_PATH);
+            return `https://gitee.com/api/v5/repos/${owner}/${repo}/contents/${encodedPath}${query ? '?' + query : ''}`;
+        },
+        async _getFileAt(filePath) {
+            const { token } = this.getConfig();
+            const q = `access_token=${encodeURIComponent(token)}`;
+            const resp = await fetch(this._apiUrlFor(filePath, q), { cache: 'no-store' });
+            if (!resp.ok) {
+                if (resp.status === 404) return { exists: false, sha: null, content: null };
+                const err = await resp.text();
+                throw new Error(`${resp.status} ${err}`);
+            }
+            const data = await resp.json();
+            if (Array.isArray(data) || !data.sha) return { exists: false, sha: null, content: null };
+            return {
+                exists: true,
+                sha: data.sha,
+                content: data.content ? b64_to_utf8(data.content.replace(/\s/g, '')) : '[]'
+            };
+        },
+        async _putFileAt(filePath, content, sha) {
+            const { token } = this.getConfig();
+            const q = `access_token=${encodeURIComponent(token)}`;
+            const body = JSON.stringify({ access_token: token, message: 'update meta', content: utf8_to_b64(content), sha });
+            const resp = await fetch(this._apiUrlFor(filePath, q), {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body
+            });
+            if (!resp.ok) throw new Error(`${resp.status} ${await resp.text()}`);
+            return true;
+        },
+        async _postFileAt(filePath, content) {
+            const { token } = this.getConfig();
+            const q = `access_token=${encodeURIComponent(token)}`;
+            const body = JSON.stringify({ access_token: token, message: 'create meta', content: utf8_to_b64(content) });
+            const resp = await fetch(this._apiUrlFor(filePath, q), {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body
+            });
+            if (!resp.ok) throw new Error(`${resp.status} ${await resp.text()}`);
+            return true;
+        },
+        async pullMeta() {
+            if (!this.isConfigured()) return null;
+            try {
+                const f = await this._getFileAt(META_PATH);
+                if (!f.exists) return null;
+                const m = JSON.parse(f.content || '{}');
+                return (m && typeof m === 'object' && !Array.isArray(m)) ? m : null;
+            } catch (e) {
+                console.warn('拉取 meta 失败:', e.message);
+                return null;
+            }
+        },
+        async pushMeta(meta) {
+            if (!this.isConfigured()) return { ok: false, reason: 'not_configured' };
+            const f = await this._getFileAt(META_PATH);
+            const content = JSON.stringify(meta);
+            if (f.exists) await this._putFileAt(META_PATH, content, f.sha);
+            else await this._postFileAt(META_PATH, content);
+            return { ok: true };
         },
         async _getFile() {
             const { token } = this.getConfig();
@@ -236,6 +300,56 @@ const Storage = (function () {
         }
     }
 
+    // ── 元数据（固定支出模板 / 储值卡）──
+    function defaultMeta() {
+        return { cards: [], fixed: [], updatedAt: 0 };
+    }
+
+    function loadMeta() {
+        try {
+            const raw = localStorage.getItem(META_KEY);
+            if (!raw) return defaultMeta();
+            const m = JSON.parse(raw);
+            if (m && typeof m === 'object') {
+                return Object.assign(defaultMeta(), m, {
+                    cards: Array.isArray(m.cards) ? m.cards : [],
+                    fixed: Array.isArray(m.fixed) ? m.fixed : []
+                });
+            }
+        } catch (e) {
+            console.warn('读取 meta 失败:', e);
+        }
+        return defaultMeta();
+    }
+
+    function saveMeta(meta) {
+        const next = Object.assign(loadMeta(), meta || {}, { updatedAt: Date.now() });
+        localStorage.setItem(META_KEY, JSON.stringify(next));
+        CloudSync.pushMeta(next).catch(err => console.warn('meta 云端同步失败:', err.message));
+        return next;
+    }
+
+    async function syncMeta() {
+        if (!CloudSync.isConfigured()) return;
+        try {
+            const remote = await CloudSync.pullMeta();
+            const local = loadMeta();
+            if (!remote) {
+                await CloudSync.pushMeta(local).catch(() => {});
+                return;
+            }
+            const rt = remote.updatedAt || 0;
+            const lt = local.updatedAt || 0;
+            if (rt > lt) {
+                localStorage.setItem(META_KEY, JSON.stringify(remote));
+            } else if (lt > rt) {
+                await CloudSync.pushMeta(local).catch(() => {});
+            }
+        } catch (e) {
+            console.warn('meta 同步失败:', e.message);
+        }
+    }
+
     function add(entry) {
         const entries = load();
         entry.id = Date.now() + Math.random().toString(36).slice(2, 6);
@@ -394,6 +508,9 @@ const Storage = (function () {
         getMonthlySummary,
         generateSampleData,
         migrateSportCategories,
+        loadMeta,
+        saveMeta,
+        syncMeta,
         save,
         load,
         CloudSync,

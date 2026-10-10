@@ -344,3 +344,150 @@ input, select { font-family: inherit; }
     .annual-header { padding: 8px 12px; }
     .a-m-nums { font-size: 12px; }
 }
+
+/* ===== 顶部待办提示条 ===== */
+.todo-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: #fff7e6;
+    border: 1px solid #ffe7ba;
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin: 0 20px 12px;
+    font-size: 13px;
+    color: #ad6800;
+}
+.todo-text { flex: 1; min-width: 200px; }
+
+/* ===== 搜索 ===== */
+.header-tools { display: flex; gap: 8px; }
+.btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+.search-box { position: relative; display: flex; align-items: center; }
+.search-input {
+    width: 180px;
+    padding: 5px 24px 5px 10px;
+    font-size: 13px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    outline: none;
+    font-family: inherit;
+    background: #fff;
+}
+.search-input:focus { border-color: #ffa940; }
+.btn-clear {
+    position: absolute;
+    right: 3px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    color: #bbb;
+    padding: 0;
+}
+.btn-clear:hover { color: #333; }
+.search-info {
+    background: #f0f7ff;
+    border: 1px solid #d6e8ff;
+    border-radius: 8px;
+    padding: 7px 12px;
+    margin: 8px 20px 0;
+    font-size: 12px;
+    color: #185fa5;
+}
+
+/* ===== 扩展弹窗（固定支出 / 储值卡）===== */
+.ex-list { list-style: none; margin: 0 0 12px; padding: 0; max-height: 240px; overflow-y: auto; }
+.ex-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #fafafa;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+.ex-name { font-weight: 500; color: #333; min-width: 76px; }
+.ex-meta { flex: 1; color: #888; font-size: 12px; }
+.ex-ok { color: #52c41a; }
+.ex-zero { color: #ccc; }
+.ex-del {
+    border: none;
+    background: transparent;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+}
+.ex-del:hover { color: #ff4d4f; }
+.ex-empty { color: #bbb; text-align: center; padding: 16px; font-size: 13px; }
+.ex-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ex-input {
+    padding: 6px 8px;
+    font-size: 13px;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    outline: none;
+    font-family: inherit;
+}
+.ex-input:focus { border-color: #ffa940; }
+.ex-num { width: 96px; }
+.ex-day { width: 62px; }
+.ex-split { margin-top: 16px; padding-top: 14px; border-top: 1px dashed #eee; }
+.ex-split h3 { font-size: 13px; font-weight: 500; color: #555; margin: 0 0 8px; }
+
+/* ===== 搜索/筛选 小屏适配 ===== */
+@media (max-width: 600px) {
+    .table-filters { flex-wrap: wrap; }
+    .search-box { flex: 1 1 100%; }
+    .search-input { width: 100%; }
+    .form-panel .header-tools { flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* ===== 分类 Top10 明细弹窗 ===== */
+#catTopModal .modal-box { max-width: 520px; }
+.cat-top-meta {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #666;
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+}
+.cat-top-meta strong { color: #333; }
+.cat-top-list { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow-y: auto; }
+.ct-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 4px;
+    border-bottom: 1px solid #f5f5f5;
+}
+.ct-item:last-child { border-bottom: none; }
+.ct-rank {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: #f0f0f0;
+    color: #888;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ct-rank-top { background: #fff1e6; color: #fa541c; font-weight: 700; }
+.ct-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ct-note { font-size: 13px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-sub { font-size: 11px; color: #999; }
+.ct-amt { font-size: 13px; font-weight: 600; color: #cf1322; white-space: nowrap; }
+.ct-empty { color: #999; font-size: 13px; padding: 10px 0; }

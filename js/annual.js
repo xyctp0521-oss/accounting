@@ -7,6 +7,7 @@ const Annual = (function () {
     const USER_COLORS = { '小羊': '#1890ff', '南瓜': '#999999', '共同': '#eb2f96' };
     let year = new Date().getFullYear();
     let activeCat = null;
+    let otherCats = [];   // 被合并进「其他」的分类名
     const $ = id => document.getElementById(id);
 
     function fmt(n) {
@@ -95,9 +96,11 @@ const Annual = (function () {
         let list = Object.keys(catSum).map(c => ({ cat: c, value: catSum[c] }))
             .sort((a, b) => b.value - a.value);
         const chartData = [];
-        if (list.length > 8) {
-            const top = list.slice(0, 7);
-            const restVal = list.slice(7).reduce((s, x) => s + x.value, 0);
+        otherCats = [];
+        if (list.length > 10) {
+            const top = list.slice(0, 10);
+            const restVal = list.slice(10).reduce((s, x) => s + x.value, 0);
+            otherCats = list.slice(10).map(x => x.cat);
             chartData.push(...top.map(x => ({ label: x.cat, value: x.value, color: Storage.getCategoryColor(x.cat) })));
             chartData.push({ label: '其他', value: restVal, color: '#ccc' });
             list = top.concat([{ cat: '其他', value: restVal }]);
@@ -185,17 +188,21 @@ const Annual = (function () {
         }
         let expenseTotal = 0, maxExpense = 0, maxEntry = null;
         const catMilk = { sum: 0, count: 0 };
+        const catSum = {};
         const monthExp = Array(12).fill(0);
         entries.forEach(e => {
             const amt = parseFloat(e.amount) || 0;
             if (e.type === 'expense') {
                 expenseTotal += amt;
+                catSum[e.category] = (catSum[e.category] || 0) + amt;
                 const mm = parseInt(String(e.date).slice(5, 7), 10);
                 if (mm >= 1 && mm <= 12) monthExp[mm - 1] += amt;
                 if (amt > maxExpense) { maxExpense = amt; maxEntry = e; }
                 if (e.category === '奶茶') { catMilk.sum += amt; catMilk.count += 1; }
             }
         });
+        const catRank = Object.keys(catSum).map(c => ({ cat: c, value: catSum[c] })).sort((a, b) => b.value - a.value);
+        const topCat = catRank.length ? catRank[0] : null;
         const now = new Date();
         const days = year < now.getFullYear() ? (isLeap(year) ? 366 : 365)
             : (year === now.getFullYear() ? Math.max(1, dayOfYear(now)) : 365);
@@ -207,6 +214,7 @@ const Annual = (function () {
         const items = [
             { label: '日均支出', value: fmt(daily) },
             { label: '最烧钱月份', value: hotMonth + ' 支出 ' + fmt(monthExp[hotIdx] || 0) },
+            { label: '最大支出分类', value: topCat ? (topCat.cat + ' ' + fmt(topCat.value) + ' 占 ' + (expenseTotal > 0 ? (topCat.value / expenseTotal * 100).toFixed(0) : 0) + '%') : '-' },
             { label: '最大单笔支出', value: fmt(maxExpense) },
             { label: '最大单笔明细', value: maxNote },
             { label: '记账总笔数', value: entries.length + ' 笔' },
@@ -226,6 +234,19 @@ const Annual = (function () {
         $('nextYear').addEventListener('click', () => setYear(year + 1));
         $('annualBar').addEventListener('click', onBarClick);
         $('annualCatList').addEventListener('click', onCatClick);
+        const pie = $('annualPie');
+        if (pie) {
+            pie.style.cursor = 'pointer';
+            pie.addEventListener('click', ev => {
+                const rect = pie.getBoundingClientRect();
+                const cat = Charts.pieHitTest(pie, ev.clientX - rect.left, ev.clientY - rect.top);
+                if (!cat) return;
+                const cats = cat === '其他' ? (otherCats.length ? otherCats : ['其他']) : cat;
+                if (typeof Extras !== 'undefined' && Extras.showCategoryTop) {
+                    Extras.showCategoryTop(cats, yearEntries(year), year + '年');
+                }
+            });
+        }
     }
 
     function onBarClick(ev) {
@@ -246,6 +267,14 @@ const Annual = (function () {
         const li = ev.target.closest('.a-cat-item');
         if (!li) return;
         const cat = li.getAttribute('data-cat');
+
+        // 无论哪个分类都弹出金额 Top10 明细
+        if (typeof Extras !== 'undefined' && Extras.showCategoryTop) {
+            const cats = cat === '其他' ? (otherCats.length ? otherCats : ['其他']) : cat;
+            Extras.showCategoryTop(cats, yearEntries(year), year + '年');
+        }
+
+        // 「其他」是聚合项，不做逐月趋势
         if (cat === '其他') return;
         activeCat = (activeCat === cat) ? null : cat;
         const list = $('annualCatList');

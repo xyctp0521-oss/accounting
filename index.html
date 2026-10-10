@@ -92,11 +92,20 @@
             </div>
         </section>
 
+        <!-- 待办提示条：本月未记账的固定支出 -->
+        <div id="todoBar" class="todo-bar" style="display:none"></div>
+
         <!-- 录入 + 列表 -->
         <section class="main-content">
             <!-- 左侧：录入表单 -->
             <div class="panel form-panel">
-                <h2 class="panel-title">新增记录</h2>
+                <div class="panel-header">
+                    <h2 class="panel-title">新增记录</h2>
+                    <div class="header-tools">
+                        <button id="fixedBtn" class="btn btn-outline btn-sm" title="维护每月固定支出">固定支出</button>
+                        <button id="cardsBtn" class="btn btn-outline btn-sm" title="储值卡余额管理">储值卡</button>
+                    </div>
+                </div>
                 <form id="entryForm" class="entry-form">
                     <input type="hidden" id="editId" value="">
                     <div class="form-row">
@@ -148,9 +157,12 @@
 
             <!-- 右侧：记录列表 -->
             <div class="panel table-panel">
-                <div class="panel-header">
-                    <h2 class="panel-title">收支明细</h2>
-                    <div class="table-filters">
+                <h2 class="panel-title">收支明细</h2>
+                <div class="table-filters">
+                        <div class="search-box">
+                            <input type="text" id="searchInput" class="search-input" placeholder="搜索：备注 / 分类 / 金额">
+                            <button id="clearSearch" class="btn-clear" style="display:none" title="清除搜索">×</button>
+                        </div>
                         <select id="filterType" class="filter-select">
                             <option value="all">全部类型</option>
                             <option value="income">收入</option>
@@ -166,7 +178,7 @@
                             <option value="共同">共同</option>
                         </select>
                     </div>
-                </div>
+                <div id="searchInfo" class="search-info" style="display:none"></div>
                 <div class="table-wrapper">
                     <table class="data-table">
                         <thead>
@@ -255,6 +267,77 @@
         </div>
     </div>
 
+    <!-- 固定支出模板弹窗 -->
+    <div id="fixedModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>固定支出模板</h2>
+                <button id="closeFixed" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">维护每月固定发生的支出（房贷、车贷、话费等）。切到某月后，顶部会出现「一键生成」提示，点击即可自动记账。</p>
+                <ul id="fixedList" class="ex-list"></ul>
+                <div class="ex-add">
+                    <input type="text" id="fxName" placeholder="名称 如 房贷" class="ex-input">
+                    <select id="fxCat" class="ex-input"></select>
+                    <input type="number" id="fxAmount" placeholder="金额" step="0.01" min="0" class="ex-input ex-num">
+                    <select id="fxUser" class="ex-input">
+                        <option value="小羊">小羊</option>
+                        <option value="南瓜">南瓜</option>
+                        <option value="共同">共同</option>
+                    </select>
+                    <input type="number" id="fxDay" placeholder="日" min="1" max="28" class="ex-input ex-day">
+                    <button id="fxAddBtn" class="btn btn-primary btn-sm">添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 储值卡余额弹窗 -->
+    <div id="cardsModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>储值卡余额</h2>
+                <button id="closeCards" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">充值时登记卡片余额；之后用卡消费只扣余额、不再重复记支出，避免餐饮／美容分类被预付费虚高。</p>
+                <ul id="cardList" class="ex-list"></ul>
+                <div class="ex-add">
+                    <input type="text" id="cdName" placeholder="卡名 如 茶颜悦色" class="ex-input">
+                    <input type="number" id="cdBalance" placeholder="当前余额" step="0.01" min="0" class="ex-input ex-num">
+                    <button id="cdAddBtn" class="btn btn-primary btn-sm">添加</button>
+                </div>
+                <div class="ex-split">
+                    <h3>用卡消费（只扣余额，不记支出）</h3>
+                    <div class="ex-add">
+                        <select id="cdUseCard" class="ex-input"></select>
+                        <input type="number" id="cdUseAmount" placeholder="消费金额" step="0.01" min="0" class="ex-input ex-num">
+                        <input type="text" id="cdUseNote" placeholder="备注（选填）" class="ex-input">
+                        <button id="cdUseBtn" class="btn btn-outline btn-sm">扣款</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cdScanBtn" class="btn btn-outline btn-sm">从历史充值记录自动识别</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类 Top10 明细弹窗 -->
+    <div id="catTopModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="catTopTitle">分类明细</h2>
+                <button id="closeCatTop" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="catTopMeta" class="cat-top-meta"></div>
+                <ol id="catTopList" class="cat-top-list"></ol>
+            </div>
+        </div>
+    </div>
+
     <!-- 年度报表视图 -->
     <div id="annualView" class="annual-view">
         <div class="annual-header">
@@ -323,6 +406,7 @@
     <script src="js/analysis.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/cloud-seed.js"></script>
+    <script src="js/extras.js"></script>
     <script src="js/app.js"></script>
     <script src="js/annual.js"></script>
     <script src="js/lock.js"></script>
