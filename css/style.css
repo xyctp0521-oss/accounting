@@ -507,3 +507,12 @@ input, select { font-family: inherit; }
 }
 .a-cat-back { color: #185fa5; cursor: pointer; }
 .a-cat-back .a-cat-name { color: #185fa5; }
+
+/* ===== 版本号标记 ===== */
+.app-version {
+    font-size: 11px;
+    color: #bbb;
+    margin-left: 6px;
+    letter-spacing: .3px;
+    user-select: none;
+}
