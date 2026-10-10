@@ -491,3 +491,19 @@ input, select { font-family: inherit; }
 .ct-sub { font-size: 11px; color: #999; }
 .ct-amt { font-size: 13px; font-weight: 600; color: #cf1322; white-space: nowrap; }
 .ct-empty { color: #999; font-size: 13px; padding: 10px 0; }
+
+/* ===== 两级分类 ===== */
+.legend-back {
+    font-size: 12px;
+    color: #185fa5;
+    cursor: pointer;
+    padding: 3px 0 5px;
+}
+.legend-back:hover { text-decoration: underline; }
+.cat-group {
+    color: #bbb;
+    font-size: 11px;
+    margin-right: 4px;
+}
+.a-cat-back { color: #185fa5; cursor: pointer; }
+.a-cat-back .a-cat-name { color: #185fa5; }
