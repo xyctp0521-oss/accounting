@@ -18,6 +18,8 @@ const App = (function () {
         updateCategoryOptions();
         // 绑定事件
         bindEvents();
+        // 显示版本号
+        bindVersionBadge();
         // 数据迁移：旧「娱乐/篮球」记录归入「运动」分类（本地幂等）
         try { Storage.migrateSportCategories(); } catch (e) { console.warn('分类迁移失败:', e); }
         // 扩展功能（固定支出 / 储值卡）
@@ -63,6 +65,16 @@ const App = (function () {
         const s = map[status] || map['local'];
         el.className = 'sync-status ' + s.cls;
         el.innerHTML = `<span class="sync-icon">${s.icon}</span> ${s.text}` + (count != null ? ` (${count})` : '');
+    }
+
+    // 页面右上角显示版本号，便于确认是否已是最新代码
+    function bindVersionBadge() {
+        const show = (v) => {
+            const el = document.getElementById('appVersion');
+            if (el && v) el.textContent = 'v' + v;
+        };
+        window.addEventListener('accversion', ev => show(ev.detail));
+        if (window.__ACC_VERSION__) show(window.__ACC_VERSION__);
     }
 
     function todayStr() {
