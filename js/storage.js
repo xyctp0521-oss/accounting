@@ -234,6 +234,17 @@ const Storage = (function () {
             if (!this.isConfigured()) return { ok: false, reason: 'not_configured' };
             try {
                 const file = await this._getFile();
+                // 推送前先与云端合并，防止本地旧数据把云端的修改盖掉
+                if (file.exists && file.content) {
+                    try {
+                        const cloud = JSON.parse(file.content || '[]');
+                        if (Array.isArray(cloud) && cloud.length) {
+                            const merged = mergeById(entries, cloud);
+                            entries = merged;
+                            localStorage.setItem(KEY, JSON.stringify(merged));
+                        }
+                    } catch (e) { /* 云端内容异常时以本地为准 */ }
+                }
                 const content = JSON.stringify(entries);
                 if (file.exists) {
                     await this._updateFile(content, file.sha);
@@ -269,12 +280,20 @@ const Storage = (function () {
         }
     };
 
+    // 合并：按 updatedAt(u) 取新，避免本地旧数据覆盖云端的新修改
     function mergeById(local, cloud) {
         const map = new Map();
-        const all = [...cloud, ...local]; // 本地优先（后写入覆盖）
-        for (const e of all) {
-            if (e && e.id) map.set(e.id, e);
-        }
+        const put = (e) => {
+            if (!e || !e.id) return;
+            const prev = map.get(e.id);
+            if (!prev) { map.set(e.id, e); return; }
+            const pu = Number(prev.u) || 0;
+            const eu = Number(e.u) || 0;
+            // 时间戳新的胜出；都没有时间戳时后写的（本地）胜出
+            if (eu >= pu) map.set(e.id, e);
+        };
+        cloud.forEach(put);
+        local.forEach(put);
         return Array.from(map.values());
     }
 
@@ -353,6 +372,7 @@ const Storage = (function () {
     function add(entry) {
         const entries = load();
         entry.id = Date.now() + Math.random().toString(36).slice(2, 6);
+        entry.u = Date.now(); // 更新时间戳，云端合并时新的胜出
         entries.push(entry);
         save(entries);
         return entry;
@@ -379,7 +399,7 @@ const Storage = (function () {
         const entries = load();
         const idx = entries.findIndex(e => e.id === id);
         if (idx >= 0) {
-            entries[idx] = { ...entries[idx], ...updates };
+            entries[idx] = { ...entries[idx], ...updates, u: Date.now() };
             save(entries);
             return entries[idx];
         }
