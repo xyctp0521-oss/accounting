@@ -224,11 +224,11 @@ const Extras = (function () {
      * @param {Array} entries 统计范围（已由调用方限定年份/月份）
      * @param {string} scope 范围文案，如「2026年」「2026年10月」
      */
-    function showCategoryTop(cats, entries, scope) {
+    function showCategoryTop(cats, entries, scope, displayName) {
         const modal = document.getElementById('catTopModal');
         if (!modal) return;
         const catArr = Array.isArray(cats) ? cats : [cats];
-        const label = catArr.length === 1 ? catArr[0] : catArr.join('、');
+        const label = displayName || (catArr.length === 1 ? catArr[0] : catArr.join('、'));
 
         const all = (entries || [])
             .filter(e => e && e.type === 'expense' && catArr.indexOf(e.category) >= 0)
@@ -238,7 +238,7 @@ const Extras = (function () {
         const total = all.reduce((s, e) => s + e.amt, 0);
         const top = all.slice(0, 10);
 
-        document.getElementById('catTopTitle').textContent = (scope ? scope + ' · ' : '') + (catArr.length === 1 ? catArr[0] : '其他分类');
+        document.getElementById('catTopTitle').textContent = (scope ? scope + ' · ' : '') + label;
 
         const meta = document.getElementById('catTopMeta');
         const topSum = top.reduce((s, e) => s + e.amt, 0);
@@ -279,7 +279,20 @@ const Extras = (function () {
         bindCatTopModal();
         const catSel = document.getElementById('fxCat');
         if (catSel) {
-            catSel.innerHTML = EXPENSE_CATS.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+            // 按大类分组（大类自身也可选，生成时按其下第一个小类记账）
+            let html = '';
+            const tree = (typeof Storage !== 'undefined' && Storage.CATEGORY_TREE)
+                ? Storage.CATEGORY_TREE.expense : null;
+            if (tree) {
+                tree.forEach(g => {
+                    html += '<optgroup label="' + g.name + '">';
+                    g.subs.forEach(c => { html += '<option value="' + c + '">' + c + '</option>'; });
+                    html += '</optgroup>';
+                });
+            } else {
+                html = EXPENSE_CATS.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+            }
+            catSel.innerHTML = html;
         }
 
         const fixedBtn = document.getElementById('fixedBtn');
