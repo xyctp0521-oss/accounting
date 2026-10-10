@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>小羊记账 - 个人智能记账系统</title>
-    <link rel="stylesheet" href="css/style.css?v=20261011c">
+    <link rel="stylesheet" href="css/style.css?v=20261011d">
     <style>
         /* PIN 门禁 */
         #pinLock {
@@ -54,6 +57,7 @@
             </div>
             <div class="header-right">
                 <span id="syncStatus" class="sync-status sync-local"><span class="sync-icon">○</span> 本地</span>
+                <span id="appVersion" class="app-version" title="当前页面版本"></span>
                 <button id="settingsBtn" class="btn btn-outline" title="云端同步设置">⚙ 同步</button>
                 <button id="reportBtn" class="btn btn-primary" title="年度报表">报表</button>
                 <button id="exportBtn" class="btn btn-outline">导出CSV</button>
@@ -399,16 +403,44 @@
         </div>
     </div>
 
-    <script src="js/import-data.js?v=20261011c"></script>
-    <script src="js/storage.js?v=20261011c"></script>
-    <script src="js/cloud-config.js?v=20261011c"></script>
-    <script src="js/charts.js?v=20261011c"></script>
-    <script src="js/analysis.js?v=20261011c"></script>
-    <script src="js/settings.js?v=20261011c"></script>
-    <script src="js/cloud-seed.js?v=20261011c"></script>
-    <script src="js/extras.js?v=20261011c"></script>
-    <script src="js/app.js?v=20261011c"></script>
-    <script src="js/annual.js?v=20261011c"></script>
-    <script src="js/lock.js?v=20261011c"></script>
+    <script src="js/import-data.js?v=20261011d"></script>
+    <script src="js/storage.js?v=20261011d"></script>
+    <script src="js/cloud-config.js?v=20261011d"></script>
+    <script src="js/charts.js?v=20261011d"></script>
+    <script src="js/analysis.js?v=20261011d"></script>
+    <script src="js/settings.js?v=20261011d"></script>
+    <script src="js/cloud-seed.js?v=20261011d"></script>
+    <script src="js/extras.js?v=20261011d"></script>
+    <script src="js/app.js?v=20261011d"></script>
+    <script src="js/annual.js?v=20261011d"></script>
+    <script src="js/lock.js?v=20261011d"></script>
+    <script>
+    /* 版本自检：若浏览器仍缓存旧代码（无两级分类结构），顶部提示并给出新版链接 */
+    (function () {
+        var V = '20261011d';
+        window.__ACC_VERSION__ = V;
+        function banner(html) {
+            if (document.getElementById('__accStaleWarn')) return;
+            var d = document.createElement('div');
+            d.id = '__accStaleWarn';
+            d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;background:#fff1f0;' +
+                'border-bottom:1px solid #ffa39e;color:#cf1322;font-size:13px;padding:9px 14px;' +
+                'text-align:center;line-height:1.6;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+            d.innerHTML = html;
+            document.body.appendChild(d);
+        }
+        window.addEventListener('load', function () {
+            setTimeout(function () {
+                var ok = (typeof Storage !== 'undefined') && Storage.CATEGORY_TREE;
+                if (ok) {
+                    window.dispatchEvent(new CustomEvent('accversion', { detail: V }));
+                } else {
+                    banner('检测到浏览器正在使用旧版缓存代码，数据可能不同步。请按 Ctrl+F5 强刷，' +
+                        '或<a href="index.html?v=' + V + '" style="color:#cf1322;font-weight:600">点此打开最新版</a>');
+                }
+            }, 400);
+        });
+    })();
+    </script>
 </body>
 </html>
