@@ -8,6 +8,9 @@ const Annual = (function () {
     let year = new Date().getFullYear();
     let activeCat = null;
     let otherCats = [];   // 被合并进「其他」的分类名
+    let catLevel = 'group';    // 'group' 大类层 / 'sub' 小类层
+    let activeGroup = null;    // 下钻中的大类
+    let activeIsGroup = false; // 当前趋势图选中的是大类还是小类
     const $ = id => document.getElementById(id);
 
     function fmt(n) {
@@ -42,6 +45,9 @@ const Annual = (function () {
     function setYear(y) {
         year = y;
         activeCat = null;
+        catLevel = 'group';
+        activeGroup = null;
+        activeIsGroup = false;
         renderAnnual();
     }
 
@@ -84,29 +90,43 @@ const Annual = (function () {
         Charts.drawBar($('annualBar'), data);
     }
 
+    // 大类 -> 其下所有小类（含数据中实际出现的）
+    function catsOfGroup(group) {
+        const tree = Storage.CATEGORY_TREE.expense || [];
+        const grp = tree.find(x => x.name === group);
+        const subs = grp ? grp.subs.slice() : [group];
+        Storage.getAll().forEach(e => {
+            if (Storage.getGroup(e.category) === group && subs.indexOf(e.category) < 0) subs.push(e.category);
+        });
+        return subs;
+    }
+
     function renderCategories(entries) {
+        const isSub = catLevel === 'sub' && activeGroup;
         const catSum = {};
         let total = 0;
         entries.forEach(e => {
             if (e.type !== 'expense') return;
             const amt = parseFloat(e.amount) || 0;
-            catSum[e.category] = (catSum[e.category] || 0) + amt;
-            total += amt;
+            if (isSub) {
+                if (Storage.getGroup(e.category) !== activeGroup) return;
+                catSum[e.category] = (catSum[e.category] || 0) + amt;
+                total += amt;
+            } else {
+                const g = Storage.getGroup(e.category);
+                catSum[g] = (catSum[g] || 0) + amt;
+                total += amt;
+            }
         });
-        let list = Object.keys(catSum).map(c => ({ cat: c, value: catSum[c] }))
+        const list = Object.keys(catSum).map(c => ({ cat: c, value: catSum[c] }))
             .sort((a, b) => b.value - a.value);
-        const chartData = [];
-        otherCats = [];
-        if (list.length > 10) {
-            const top = list.slice(0, 10);
-            const restVal = list.slice(10).reduce((s, x) => s + x.value, 0);
-            otherCats = list.slice(10).map(x => x.cat);
-            chartData.push(...top.map(x => ({ label: x.cat, value: x.value, color: Storage.getCategoryColor(x.cat) })));
-            chartData.push({ label: '其他', value: restVal, color: '#ccc' });
-            list = top.concat([{ cat: '其他', value: restVal }]);
-        } else {
-            chartData.push(...list.map(x => ({ label: x.cat, value: x.value, color: Storage.getCategoryColor(x.cat) })));
-        }
+
+        const base = activeGroup ? Storage.getGroupColor(activeGroup) : '#999';
+        const chartData = list.map((x, i) => ({
+            label: x.cat,
+            value: x.value,
+            color: isSub ? Storage.shadeColor(base, i, Math.max(list.length, 2)) : Storage.getGroupColor(x.cat)
+        }));
         Charts.drawPie($('annualPie'), chartData);
 
         const ul = $('annualCatList');
@@ -114,8 +134,15 @@ const Annual = (function () {
             ul.innerHTML = '<li class="a-empty">该年度暂无支出记录</li>';
             return;
         }
-        ul.innerHTML = list.map(x => {
-            const color = x.cat === '其他' ? '#ccc' : Storage.getCategoryColor(x.cat);
+        let html = '';
+        if (isSub) {
+            html += '<li class="a-cat-item a-cat-back" data-cat="__back__">' +
+                '<span class="a-cat-name">← 返回全部大类</span></li>';
+        }
+        html += list.map(x => {
+            const color = isSub
+                ? Storage.shadeColor(base, list.indexOf(x), Math.max(list.length, 2))
+                : Storage.getGroupColor(x.cat);
             const pct = total > 0 ? ((x.value / total) * 100).toFixed(1) : '0.0';
             const active = activeCat === x.cat ? ' active' : '';
             return '<li class="a-cat-item' + active + '" data-cat="' + x.cat + '">' +
@@ -126,6 +153,7 @@ const Annual = (function () {
                 '<span class="a-cat-pct">' + pct + '%</span>' +
                 '</li>';
         }).join('');
+        ul.innerHTML = html;
         renderCatDetail();
     }
 
@@ -140,8 +168,9 @@ const Annual = (function () {
         hint.textContent = '「' + activeCat + '」全年逐月支出（点击其它分类或再次点击可切换）';
         const entries = yearEntries(year);
         const byMonth = Array(12).fill(0);
+        const set = activeIsGroup ? catsOfGroup(activeCat) : [activeCat];
         entries.forEach(e => {
-            if (e.type !== 'expense' || e.category !== activeCat) return;
+            if (e.type !== 'expense' || set.indexOf(e.category) < 0) return;
             const mm = parseInt(String(e.date).slice(5, 7), 10);
             if (mm >= 1 && mm <= 12) byMonth[mm - 1] += parseFloat(e.amount) || 0;
         });
@@ -194,7 +223,7 @@ const Annual = (function () {
             const amt = parseFloat(e.amount) || 0;
             if (e.type === 'expense') {
                 expenseTotal += amt;
-                catSum[e.category] = (catSum[e.category] || 0) + amt;
+                catSum[Storage.getGroup(e.category)] = (catSum[Storage.getGroup(e.category)] || 0) + amt;
                 const mm = parseInt(String(e.date).slice(5, 7), 10);
                 if (mm >= 1 && mm <= 12) monthExp[mm - 1] += amt;
                 if (amt > maxExpense) { maxExpense = amt; maxEntry = e; }
@@ -241,9 +270,16 @@ const Annual = (function () {
                 const rect = pie.getBoundingClientRect();
                 const cat = Charts.pieHitTest(pie, ev.clientX - rect.left, ev.clientY - rect.top);
                 if (!cat) return;
-                const cats = cat === '其他' ? (otherCats.length ? otherCats : ['其他']) : cat;
-                if (typeof Extras !== 'undefined' && Extras.showCategoryTop) {
-                    Extras.showCategoryTop(cats, yearEntries(year), year + '年');
+                if (catLevel === 'sub') { showTop(cat, false); return; }
+                const subs = catsOfGroup(cat).filter(c => Storage.getGroup(c) === cat);
+                if (subs.length > 1) {
+                    activeGroup = cat;
+                    catLevel = 'sub';
+                    activeCat = cat;
+                    activeIsGroup = true;
+                    renderAnnual();
+                } else {
+                    showTop(cat, true);
                 }
             });
         }
@@ -263,20 +299,50 @@ const Annual = (function () {
         }
     }
 
+    function showTop(cat, isGroup) {
+        if (typeof Extras === 'undefined' || !Extras.showCategoryTop) return;
+        const cats = isGroup ? catsOfGroup(cat) : cat;
+        Extras.showCategoryTop(cats, yearEntries(year), year + '年', isGroup ? cat : null);
+    }
+
     function onCatClick(ev) {
         const li = ev.target.closest('.a-cat-item');
         if (!li) return;
         const cat = li.getAttribute('data-cat');
 
-        // 无论哪个分类都弹出金额 Top10 明细
-        if (typeof Extras !== 'undefined' && Extras.showCategoryTop) {
-            const cats = cat === '其他' ? (otherCats.length ? otherCats : ['其他']) : cat;
-            Extras.showCategoryTop(cats, yearEntries(year), year + '年');
+        // 返回上层
+        if (cat === '__back__') {
+            catLevel = 'group';
+            activeGroup = null;
+            activeCat = null;
+            activeIsGroup = false;
+            renderAnnual();
+            return;
         }
 
-        // 「其他」是聚合项，不做逐月趋势
-        if (cat === '其他') return;
+        if (catLevel === 'group') {
+            const subs = catsOfGroup(cat).filter(c => Storage.getGroup(c) === cat);
+            if (subs.length > 1) {
+                // 下钻到该大类的小类
+                activeGroup = cat;
+                catLevel = 'sub';
+                activeCat = cat;
+                activeIsGroup = true;
+                renderAnnual();
+            } else {
+                // 只有一个小类，直接看明细
+                showTop(cat, true);
+                activeCat = (activeCat === cat) ? null : cat;
+                activeIsGroup = !!activeCat;
+                renderAnnual();
+            }
+            return;
+        }
+
+        // 小类层：弹 Top10 + 切换逐月趋势
+        showTop(cat, false);
         activeCat = (activeCat === cat) ? null : cat;
+        activeIsGroup = false;
         const list = $('annualCatList');
         list.querySelectorAll('.a-cat-item').forEach(el => {
             el.classList.toggle('active', el.getAttribute('data-cat') === activeCat);
