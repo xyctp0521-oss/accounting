@@ -250,6 +250,77 @@ const Charts = (function () {
         ctx.fillText('支出', pad.left + 76, 10);
     }
 
+    // ===== 储蓄率柱状图（支持正负，零轴居中）=====
+    // data: [{ label: '1月', value: 61.2 }]  value 为百分比
+    function drawRate(canvas, data) {
+        const { ctx, w, h } = setupCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+
+        const has = (data || []).filter(d => d && isFinite(d.value));
+        if (!has.length) {
+            drawEmpty(ctx, w, h, '暂无数据');
+            return;
+        }
+
+        const pad = { top: 22, right: 18, bottom: 32, left: 46 };
+        const cw = w - pad.left - pad.right;
+        const ch = h - pad.top - pad.bottom;
+
+        const upper = niceCeil(Math.max(10, Math.max.apply(null, has.map(d => d.value))));
+        const lower = niceCeil(Math.max(10, -Math.min.apply(null, has.map(d => d.value))));
+        const span = upper + lower;
+        const y0 = pad.top + ch * (upper / span);
+
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        // 网格与刻度（5 档）
+        for (let i = 0; i <= 4; i++) {
+            const val = upper - (span / 4) * i;
+            const y = pad.top + (ch / 4) * i;
+            const isZero = Math.abs(val) < 1e-6;
+            ctx.strokeStyle = isZero ? '#d9d9d9' : '#f0f0f0';
+            ctx.beginPath();
+            ctx.moveTo(pad.left, y);
+            ctx.lineTo(w - pad.right, y);
+            ctx.stroke();
+            ctx.fillStyle = isZero ? '#666' : '#999';
+            ctx.fillText(val.toFixed(0) + '%', pad.left - 6, y);
+        }
+
+        const groupWidth = cw / data.length;
+        const barWidth = Math.min(groupWidth * 0.5, 26);
+
+        data.forEach((d, i) => {
+            if (!d || !isFinite(d.value)) return;
+            const cx = pad.left + groupWidth * i + groupWidth / 2;
+            const v = d.value;
+            const barH = Math.abs(v) / span * ch;
+            const y = v >= 0 ? y0 - barH : y0;
+            ctx.fillStyle = v >= 0 ? '#52c41a' : '#ff4d4f';
+            ctx.fillRect(cx - barWidth / 2, y, barWidth, Math.max(1, barH));
+
+            ctx.fillStyle = v >= 0 ? '#389e0d' : '#cf1322';
+            ctx.textAlign = 'center';
+            ctx.font = '11px sans-serif';
+            ctx.textBaseline = v >= 0 ? 'bottom' : 'top';
+            const ly = v >= 0 ? y - 3 : y + barH + 3;
+            ctx.fillText((v >= 0 ? '' : '-') + Math.abs(v).toFixed(0) + '%', cx, ly);
+
+            ctx.fillStyle = '#666';
+            ctx.textBaseline = 'top';
+            ctx.fillText(d.label, cx, h - pad.bottom + 6);
+        });
+
+        // 零轴
+        ctx.strokeStyle = '#bfbfbf';
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y0);
+        ctx.lineTo(w - pad.right, y0);
+        ctx.stroke();
+    }
+
     function drawEmpty(ctx, w, h, msg) {
         ctx.fillStyle = '#ccc';
         ctx.font = '14px sans-serif';
@@ -288,5 +359,5 @@ const Charts = (function () {
         return null;
     }
 
-    return { drawPie, drawLine, drawBar, pieHitTest };
+    return { drawPie, drawLine, drawBar, drawRate, pieHitTest };
 })();
