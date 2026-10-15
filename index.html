@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>小羊记账 - 个人智能记账系统</title>
-    <link rel="stylesheet" href="css/style.css?v=20261011d">
+    <link rel="stylesheet" href="css/style.css?v=20261016a">
     <style>
         /* PIN 门禁 */
         #pinLock {
@@ -354,6 +354,13 @@
             </div>
         </div>
         <div class="annual-body">
+            <div class="annual-panel annual-bill-panel">
+                <div class="bill-head">
+                    <h3>年度账单</h3>
+                    <button id="billSaveBtn" class="btn btn-outline btn-sm">保存为图片</button>
+                </div>
+                <div id="annualBill" class="bill-box"></div>
+            </div>
             <div class="annual-cards">
                 <div class="a-card"><div class="a-label">全年收入</div><div class="a-value a-income" id="annualIncome">¥0.00</div></div>
                 <div class="a-card"><div class="a-label">全年支出</div><div class="a-value a-expense" id="annualExpense">¥0.00</div></div>
@@ -363,6 +370,12 @@
             <div class="annual-panel">
                 <h3>月度收支趋势（12 个月）<span class="a-hint">点击柱子可跳回该月明细</span></h3>
                 <canvas id="annualBar" width="900" height="300"></canvas>
+                <div id="annualCompare" class="cmp-wrap"></div>
+            </div>
+            <div class="annual-panel">
+                <h3>储蓄率趋势<span class="a-hint">（收入 − 支出）÷ 收入，柱子向下代表当月入不敷出</span></h3>
+                <canvas id="annualRateChart" width="900" height="260"></canvas>
+                <div id="annualRateHint" class="a-hint"></div>
             </div>
             <div class="annual-grid2">
                 <div class="annual-panel">
@@ -403,17 +416,17 @@
         </div>
     </div>
 
-    <script src="js/import-data.js?v=20261011d"></script>
-    <script src="js/storage.js?v=20261011d"></script>
-    <script src="js/cloud-config.js?v=20261011d"></script>
-    <script src="js/charts.js?v=20261011d"></script>
-    <script src="js/analysis.js?v=20261011d"></script>
-    <script src="js/settings.js?v=20261011d"></script>
-    <script src="js/cloud-seed.js?v=20261011d"></script>
-    <script src="js/extras.js?v=20261011d"></script>
-    <script src="js/app.js?v=20261011d"></script>
-    <script src="js/annual.js?v=20261011d"></script>
-    <script src="js/lock.js?v=20261011d"></script>
+    <script src="js/import-data.js?v=20261016a"></script>
+    <script src="js/storage.js?v=20261016a"></script>
+    <script src="js/cloud-config.js?v=20261016a"></script>
+    <script src="js/charts.js?v=20261016a"></script>
+    <script src="js/analysis.js?v=20261016a"></script>
+    <script src="js/settings.js?v=20261016a"></script>
+    <script src="js/cloud-seed.js?v=20261016a"></script>
+    <script src="js/extras.js?v=20261016a"></script>
+    <script src="js/app.js?v=20261016a"></script>
+    <script src="js/annual.js?v=20261016a"></script>
+    <script src="js/lock.js?v=20261016a"></script>
     <script>
     /* 版本自检：若浏览器仍缓存旧代码（无两级分类结构），顶部提示并给出新版链接 */
     (function () {
