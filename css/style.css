@@ -516,3 +516,38 @@ input, select { font-family: inherit; }
     letter-spacing: .3px;
     user-select: none;
 }
+
+/* ===== 年度账单 ===== */
+.annual-bill-panel { border: 1px solid #ffe0b2; background: #fffdf9; }
+.bill-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bill-head h3 { margin: 0; }
+.bill-hero { text-align: center; padding: 12px 0 16px; border-bottom: 1px dashed #f0e0c8; }
+.bill-hero-label { font-size: 13px; color: #999; }
+.bill-hero-value { font-size: 36px; font-weight: 600; color: #cf1322; margin: 6px 0; letter-spacing: -.5px; word-break: break-all; }
+.bill-hero-sub { font-size: 12px; color: #999; }
+.bill-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+.bill-cell { background: #fafafa; border-radius: 8px; padding: 10px 12px; }
+.bc-label { font-size: 12px; color: #999; }
+.bc-value { font-size: 16px; font-weight: 600; color: #333; margin-top: 3px; }
+.bill-quote { margin-top: 14px; background: #fff7e6; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #ad6800; line-height: 1.6; }
+
+/* ===== 月度环比 ===== */
+.cmp-wrap { margin-top: 16px; }
+.cmp-title { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; }
+.cmp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.cmp-table th { text-align: right; font-weight: 500; color: #999; padding: 6px 8px; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+.cmp-table td { text-align: right; padding: 6px 8px; border-bottom: 1px solid #f5f5f5; color: #333; white-space: nowrap; }
+.cmp-table th:first-child, .cmp-table td:first-child { text-align: left; }
+.cmp-month { font-weight: 600; color: #333; }
+.cmp-up { color: #cf1322; }
+.cmp-down { color: #389e0d; }
+.cmp-flat { color: #999; }
+.cmp-none { color: #ccc; }
+.cmp-pos { color: #389e0d; }
+.cmp-neg { color: #cf1322; }
+
+@media (max-width: 640px) {
+    .bill-grid { grid-template-columns: repeat(2, 1fr); }
+    .bill-hero-value { font-size: 28px; }
+    .cmp-wrap { overflow-x: auto; }
+}
