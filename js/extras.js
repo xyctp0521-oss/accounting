@@ -275,8 +275,24 @@ const Extras = (function () {
     }
 
     // ============ 购物节暂存 ============
-    // 只记购物类小类 + 所属人，先进 meta.festival 暂存，确认后一次性写入总账单
-    const FEST_CATS = ['服饰鞋包', '日用小物', '数码配件', '潮玩盲盒', '综合采购'];
+    // 购物节可选分类：购物整组 + 家居日用 + 美容个护整组
+    const FEST_CATS = ['服饰鞋包', '日用小物', '数码配件', '潮玩盲盒', '综合采购',
+        '家居日用', '美容服务', '护肤彩妆'];
+    const FEST_GROUPS = ['购物', '美容个护'];   // 整组纳入
+    const FEST_EXTRA = ['家居日用'];            // 单个小类纳入
+
+    // 按大类组装下拉项（购物 / 居住 / 美容个护），无 CATEGORY_TREE 时回退平铺
+    function festCategoryGroups() {
+        const tree = (typeof Storage !== 'undefined' && Storage.CATEGORY_TREE)
+            ? Storage.CATEGORY_TREE.expense : null;
+        if (!tree) return [{ group: '', subs: FEST_CATS }];
+        const out = [];
+        tree.forEach(g => {
+            const subs = g.subs.filter(s => FEST_GROUPS.indexOf(g.name) >= 0 || FEST_EXTRA.indexOf(s) >= 0);
+            if (subs.length) out.push({ group: g.name, subs: subs });
+        });
+        return out.length ? out : [{ group: '', subs: FEST_CATS }];
+    }
 
     function defaultFestName() {
         const d = new Date();
@@ -405,14 +421,10 @@ const Extras = (function () {
 
         const catSel = document.getElementById('fsCat');
         if (catSel) {
-            let subs = FEST_CATS;
-            const tree = (typeof Storage !== 'undefined' && Storage.CATEGORY_TREE)
-                ? Storage.CATEGORY_TREE.expense : null;
-            if (tree) {
-                const g = tree.find(x => x.name === '购物');
-                if (g && g.subs.length) subs = g.subs;
-            }
-            catSel.innerHTML = subs.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+            catSel.innerHTML = festCategoryGroups().map(g => {
+                const opts = g.subs.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+                return g.group ? '<optgroup label="' + g.group + '">' + opts + '</optgroup>' : opts;
+            }).join('');
         }
 
         btn.addEventListener('click', () => {
