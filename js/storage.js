@@ -313,6 +313,8 @@ const Storage = (function () {
         },
         async syncFromCloud() {
             if (!this.isConfigured()) return { ok: false, reason: 'not_configured' };
+            // 先同步 meta（内含删除墓碑），否则本地旧数据会把已删记录带回云端
+            try { await syncMeta(); } catch (e) { console.warn('同步 meta 失败:', e.message); }
             const cloudData = await this.pull();
             if (!Array.isArray(cloudData)) return { ok: false, reason: 'empty' };
             const local = load();
@@ -347,7 +349,9 @@ const Storage = (function () {
         };
         cloud.forEach(put);
         local.forEach(put);
-        return Array.from(map.values());
+        // 过滤掉已删除的条目（墓碑优先，避免删除后被云端或旧本地数据带回）
+        const tombs = getTombs();
+        return Array.from(map.values()).filter(e => !tombs[e.id]);
     }
 
     function load() {
@@ -374,7 +378,29 @@ const Storage = (function () {
 
     // ── 元数据（固定支出模板 / 储值卡）──
     function defaultMeta() {
-        return { cards: [], fixed: [], updatedAt: 0 };
+        return { cards: [], fixed: [], deleted: {}, updatedAt: 0 };
+    }
+
+    // ===== 删除墓碑 =====
+    // 云端合并只认新增/修改，删除必须留墓碑，否则一同步就被云端旧记录带回来
+    const TOMB_TTL = 90 * 24 * 3600 * 1000;   // 保留 90 天
+
+    function getTombs() {
+        const m = loadMeta();
+        return (m.deleted && typeof m.deleted === 'object') ? m.deleted : {};
+    }
+
+    function markDeleted(id) {
+        if (!id) return;
+        const meta = loadMeta();
+        const tombs = Object.assign({}, meta.deleted || {});
+        tombs[id] = Date.now();
+        // 清理过期墓碑，避免无限增长
+        const cutoff = Date.now() - TOMB_TTL;
+        Object.keys(tombs).forEach(k => {
+            if (Number(tombs[k]) < cutoff) delete tombs[k];
+        });
+        saveMeta({ deleted: tombs });
     }
 
     function loadMeta() {
@@ -412,11 +438,15 @@ const Storage = (function () {
             }
             const rt = remote.updatedAt || 0;
             const lt = local.updatedAt || 0;
-            if (rt > lt) {
-                localStorage.setItem(META_KEY, JSON.stringify(remote));
-            } else if (lt > rt) {
-                await CloudSync.pushMeta(local).catch(() => {});
-            }
+            let base;
+            if (rt > lt) base = Object.assign({}, remote);
+            else if (lt > rt) base = Object.assign({}, local);
+            else return;
+            // 墓碑取并集：一端的删除不能因为另一端 meta 更新而丢失
+            base.deleted = Object.assign({}, remote.deleted || {}, local.deleted || {});
+            const tombChanged = Object.keys(base.deleted).length !== Object.keys(remote.deleted || {}).length;
+            localStorage.setItem(META_KEY, JSON.stringify(base));
+            if (tombChanged) await CloudSync.pushMeta(base).catch(() => {});
         } catch (e) {
             console.warn('meta 同步失败:', e.message);
         }
@@ -460,6 +490,8 @@ const Storage = (function () {
     }
 
     function remove(id) {
+        // 先立墓碑，再删本地并推送；否则下次同步会被云端旧记录复活
+        markDeleted(id);
         const entries = load().filter(e => e.id !== id);
         save(entries);
     }
