@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>小羊记账 - 个人智能记账系统</title>
-    <link rel="stylesheet" href="css/style.css?v=20261022c">
+    <link rel="stylesheet" href="css/style.css?v=20261022d">
     <style>
         /* PIN 门禁 */
         #pinLock {
@@ -453,21 +453,26 @@
         </div>
     </div>
 
-    <script src="js/import-data.js?v=20261022c"></script>
-    <script src="js/storage.js?v=20261022c"></script>
-    <script src="js/cloud-config.js?v=20261022c"></script>
-    <script src="js/charts.js?v=20261022c"></script>
-    <script src="js/analysis.js?v=20261022c"></script>
-    <script src="js/settings.js?v=20261022c"></script>
-    <script src="js/cloud-seed.js?v=20261022c"></script>
-    <script src="js/extras.js?v=20261022c"></script>
-    <script src="js/app.js?v=20261022c"></script>
-    <script src="js/annual.js?v=20261022c"></script>
-    <script src="js/lock.js?v=20261022c"></script>
+    <script src="js/import-data.js?v=20261022d"></script>
+    <script src="js/storage.js?v=20261022d"></script>
+    <script src="js/cloud-config.js?v=20261022d"></script>
+    <script src="js/charts.js?v=20261022d"></script>
+    <script src="js/analysis.js?v=20261022d"></script>
+    <script src="js/settings.js?v=20261022d"></script>
+    <script src="js/cloud-seed.js?v=20261022d"></script>
+    <script src="js/extras.js?v=20261022d"></script>
+    <script src="js/app.js?v=20261022d"></script>
+    <script src="js/annual.js?v=20261022d"></script>
+    <script src="js/lock.js?v=20261022d"></script>
     <script>
     /* 版本自检：若浏览器仍缓存旧代码（无两级分类结构），顶部提示并给出新版链接 */
     (function () {
-        var V = '20261011d';
+        /* 版本号从资源引用自动读取，避免手写字符串与实际加载版本不一致 */
+        var V = (function () {
+            var s = document.querySelector('script[src*="storage.js"]');
+            var m = s && /[?&]v=([^&]+)/.exec(s.src);
+            return m ? m[1] : 'dev';
+        })();
         window.__ACC_VERSION__ = V;
         function banner(html) {
             if (document.getElementById('__accStaleWarn')) return;
