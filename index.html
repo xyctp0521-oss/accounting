@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>小羊记账 - 个人智能记账系统</title>
-    <link rel="stylesheet" href="css/style.css?v=20261016a">
+    <link rel="stylesheet" href="css/style.css?v=20261022a">
     <style>
         /* PIN 门禁 */
         #pinLock {
@@ -108,6 +108,7 @@
                     <div class="header-tools">
                         <button id="fixedBtn" class="btn btn-outline btn-sm" title="维护每月固定支出">固定支出</button>
                         <button id="cardsBtn" class="btn btn-outline btn-sm" title="储值卡余额管理">储值卡</button>
+                        <button id="festivalBtn" class="btn btn-outline btn-sm" title="618/双十一等购物节暂存记账">购物节</button>
                     </div>
                 </div>
                 <form id="entryForm" class="entry-form">
@@ -328,6 +329,42 @@
         </div>
     </div>
 
+    <!-- 购物节暂存记账 -->
+    <div id="festivalModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box fs-box">
+            <div class="modal-header">
+                <h2>购物节记账</h2>
+                <button id="closeFestival" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">618、双十一这类大促，先把买的东西攒在这里，不进总账单。确认后再一次性誊写。</p>
+                <div class="fs-name-row">
+                    <input type="text" id="fsName" class="ex-input fs-name" placeholder="购物节名称">
+                    <span id="fsBadge" class="fs-badge">暂存中</span>
+                </div>
+                <div class="ex-add fs-add">
+                    <input type="number" id="fsAmount" placeholder="金额" step="0.01" min="0" class="ex-input ex-num">
+                    <select id="fsCat" class="ex-input"></select>
+                    <select id="fsUser" class="ex-input">
+                        <option value="小羊">小羊</option>
+                        <option value="南瓜">南瓜</option>
+                        <option value="共同">共同</option>
+                    </select>
+                    <input type="text" id="fsNote" placeholder="备注（选填）" class="ex-input">
+                    <button id="fsAddBtn" class="btn btn-primary btn-sm">加入</button>
+                </div>
+                <ul id="fsList" class="ex-list fs-list"></ul>
+                <div class="fs-foot">
+                    <span id="fsTotal" class="fs-total">共 0 笔 · ¥0.00</span>
+                    <div class="fs-actions">
+                        <button id="fsClearBtn" class="btn btn-outline btn-sm">清空</button>
+                        <button id="fsCommitBtn" class="btn btn-primary btn-sm">确认入账</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 分类 Top10 明细弹窗 -->
     <div id="catTopModal" class="modal-overlay" style="display:none;">
         <div class="modal-box">
@@ -416,17 +453,17 @@
         </div>
     </div>
 
-    <script src="js/import-data.js?v=20261016a"></script>
-    <script src="js/storage.js?v=20261016a"></script>
-    <script src="js/cloud-config.js?v=20261016a"></script>
-    <script src="js/charts.js?v=20261016a"></script>
-    <script src="js/analysis.js?v=20261016a"></script>
-    <script src="js/settings.js?v=20261016a"></script>
-    <script src="js/cloud-seed.js?v=20261016a"></script>
-    <script src="js/extras.js?v=20261016a"></script>
-    <script src="js/app.js?v=20261016a"></script>
-    <script src="js/annual.js?v=20261016a"></script>
-    <script src="js/lock.js?v=20261016a"></script>
+    <script src="js/import-data.js?v=20261022a"></script>
+    <script src="js/storage.js?v=20261022a"></script>
+    <script src="js/cloud-config.js?v=20261022a"></script>
+    <script src="js/charts.js?v=20261022a"></script>
+    <script src="js/analysis.js?v=20261022a"></script>
+    <script src="js/settings.js?v=20261022a"></script>
+    <script src="js/cloud-seed.js?v=20261022a"></script>
+    <script src="js/extras.js?v=20261022a"></script>
+    <script src="js/app.js?v=20261022a"></script>
+    <script src="js/annual.js?v=20261022a"></script>
+    <script src="js/lock.js?v=20261022a"></script>
     <script>
     /* 版本自检：若浏览器仍缓存旧代码（无两级分类结构），顶部提示并给出新版链接 */
     (function () {
