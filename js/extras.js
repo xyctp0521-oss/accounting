@@ -274,8 +274,212 @@ const Extras = (function () {
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCatTop(); });
     }
 
+    // ============ 购物节暂存 ============
+    // 只记购物类小类 + 所属人，先进 meta.festival 暂存，确认后一次性写入总账单
+    const FEST_CATS = ['服饰鞋包', '日用小物', '数码配件', '潮玩盲盒', '综合采购'];
+
+    function defaultFestName() {
+        const d = new Date();
+        const m = d.getMonth() + 1;
+        let tag = '购物节';
+        if (m === 5 || m === 6) tag = '618';
+        else if (m === 10 || m === 11) tag = '双十一';
+        return d.getFullYear() + ' ' + tag;
+    }
+
+    function getFestival() {
+        const meta = Storage.loadMeta();
+        const f = meta.festival || {};
+        return {
+            name: f.name || defaultFestName(),
+            items: Array.isArray(f.items) ? f.items : []
+        };
+    }
+
+    function saveFestival(f) {
+        Storage.saveMeta({ festival: { name: f.name, items: f.items } });
+    }
+
+    function festTotal(items) {
+        return (items || []).reduce((s, it) => s + (parseFloat(it.amount) || 0), 0);
+    }
+
+    function addFestivalItem(item) {
+        const f = getFestival();
+        f.items.push(Object.assign({ id: uid('fs'), at: Date.now() }, item));
+        saveFestival(f);
+        return f;
+    }
+
+    function removeFestivalItem(id) {
+        const f = getFestival();
+        f.items = f.items.filter(it => it.id !== id);
+        saveFestival(f);
+        return f;
+    }
+
+    function clearFestival() {
+        const f = getFestival();
+        f.items = [];
+        saveFestival(f);
+        return f;
+    }
+
+    function commitFestival() {
+        const f = getFestival();
+        if (!f.items.length) { alert('还没有要入账的条目'); return false; }
+        const total = festTotal(f.items);
+        const ok = confirm('确认把 ' + f.items.length + ' 笔、共 ' + fmt(total) + ' 誊写到总账单？\n\n'
+            + '日期按每条加入的时间，并标记为「' + f.name + '」。');
+        if (!ok) return false;
+
+        const entries = Storage.getAll().slice();
+        const now = Date.now();
+        f.items.forEach((it, i) => {
+            const d = new Date(it.at || now);
+            const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+                + '-' + String(d.getDate()).padStart(2, '0');
+            entries.push({
+                id: now + 'fs' + i + Math.random().toString(36).slice(2, 5),
+                type: 'expense',
+                category: it.category,
+                amount: parseFloat(it.amount) || 0,
+                date: dateStr,
+                user: it.user,
+                note: it.note || f.name,
+                festival: f.name,
+                u: now
+            });
+        });
+        Storage.save(entries);
+        f.items = [];
+        saveFestival(f);
+        return true;
+    }
+
+    function renderFestival() {
+        const f = getFestival();
+
+        const nameEl = document.getElementById('fsName');
+        if (nameEl && document.activeElement !== nameEl) nameEl.value = f.name;
+
+        const n = f.items.length;
+        const badge = document.getElementById('fsBadge');
+        if (badge) {
+            badge.textContent = n ? '暂存 ' + n + ' 笔' : '暂无暂存';
+            badge.className = 'fs-badge' + (n ? ' fs-badge-on' : '');
+        }
+
+        const btn = document.getElementById('festivalBtn');
+        if (btn) btn.textContent = n ? '购物节 (' + n + ')' : '购物节';
+
+        const list = document.getElementById('fsList');
+        if (list) {
+            if (!n) {
+                list.innerHTML = '<li class="fs-empty">还没有记录。购物节买的东西先加在这里，确认前不影响总账单。</li>';
+            } else {
+                list.innerHTML = f.items.slice().reverse().map(it => {
+                    const d = new Date(it.at || Date.now());
+                    const ds = (d.getMonth() + 1) + '/' + d.getDate();
+                    return '<li class="fs-item">' +
+                        '<span class="fs-cat">' + esc(it.category) + '</span>' +
+                        '<span class="fs-main">' +
+                        '<span class="fs-note">' + esc(it.note || '无备注') + '</span>' +
+                        '<span class="fs-sub">' + esc(it.user || '-') + ' · ' + ds + '</span>' +
+                        '</span>' +
+                        '<span class="fs-amt">' + fmt(it.amount) + '</span>' +
+                        '<button class="fs-del" data-del="' + it.id + '" title="删除">×</button>' +
+                        '</li>';
+                }).join('');
+            }
+        }
+
+        const tot = document.getElementById('fsTotal');
+        if (tot) tot.textContent = '共 ' + n + ' 笔 · ' + fmt(festTotal(f.items));
+    }
+
+    function bindFestival() {
+        const btn = document.getElementById('festivalBtn');
+        const modal = document.getElementById('festivalModal');
+        if (!btn || !modal) return;
+
+        const catSel = document.getElementById('fsCat');
+        if (catSel) {
+            let subs = FEST_CATS;
+            const tree = (typeof Storage !== 'undefined' && Storage.CATEGORY_TREE)
+                ? Storage.CATEGORY_TREE.expense : null;
+            if (tree) {
+                const g = tree.find(x => x.name === '购物');
+                if (g && g.subs.length) subs = g.subs;
+            }
+            catSel.innerHTML = subs.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+        }
+
+        btn.addEventListener('click', () => {
+            renderFestival();
+            modal.style.display = '';
+            setTimeout(() => {
+                const a = document.getElementById('fsAmount');
+                if (a) a.focus();
+            }, 60);
+        });
+        document.getElementById('closeFestival').addEventListener('click', () => { modal.style.display = 'none'; });
+        modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+
+        const add = () => {
+            const amt = parseFloat(document.getElementById('fsAmount').value);
+            const note = document.getElementById('fsNote').value.trim();
+            if (isNaN(amt) || amt <= 0) { alert('请填写金额'); return; }
+            addFestivalItem({
+                amount: amt,
+                category: document.getElementById('fsCat').value,
+                user: document.getElementById('fsUser').value,
+                note: note
+            });
+            document.getElementById('fsAmount').value = '';
+            document.getElementById('fsNote').value = '';
+            renderFestival();
+            document.getElementById('fsAmount').focus();
+        };
+        document.getElementById('fsAddBtn').addEventListener('click', add);
+        document.getElementById('fsAmount').addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
+        document.getElementById('fsNote').addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
+
+        document.getElementById('fsList').addEventListener('click', e => {
+            const id = e.target.getAttribute('data-del');
+            if (id) { removeFestivalItem(id); renderFestival(); }
+        });
+
+        document.getElementById('fsClearBtn').addEventListener('click', () => {
+            const f = getFestival();
+            if (!f.items.length) return;
+            if (!confirm('清空暂存的 ' + f.items.length + ' 笔？清空后不会进总账单。')) return;
+            clearFestival();
+            renderFestival();
+        });
+
+        document.getElementById('fsCommitBtn').addEventListener('click', () => {
+            if (commitFestival()) {
+                modal.style.display = 'none';
+                renderFestival();
+                if (typeof App !== 'undefined' && App.refresh) App.refresh();
+            }
+        });
+
+        const nameEl = document.getElementById('fsName');
+        if (nameEl) {
+            nameEl.addEventListener('change', () => {
+                const f = getFestival();
+                f.name = nameEl.value.trim() || defaultFestName();
+                saveFestival(f);
+                renderFestival();
+            });
+        }
+    }
+
     // ============ 初始化 ============
     function init() {
+        bindFestival();
         bindCatTopModal();
         const catSel = document.getElementById('fxCat');
         if (catSel) {
@@ -344,6 +548,9 @@ const Extras = (function () {
             });
             document.getElementById('cdScanBtn').addEventListener('click', scanFromHistory);
         }
+
+        // 刷新购物节按钮上的暂存条数
+        try { renderFestival(); } catch (e) { console.warn('购物节初始化失败:', e); }
     }
 
     return {
