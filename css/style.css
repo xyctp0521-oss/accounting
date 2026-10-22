@@ -551,3 +551,41 @@ input, select { font-family: inherit; }
     .bill-hero-value { font-size: 28px; }
     .cmp-wrap { overflow-x: auto; }
 }
+
+/* ===== 购物节暂存 ===== */
+.fs-box .modal-body { max-height: 76vh; overflow-y: auto; }
+.fs-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.fs-name { flex: 1; font-weight: 600; }
+.fs-badge {
+    font-size: 11px; color: #999; background: #f5f5f5;
+    border-radius: 10px; padding: 3px 9px; white-space: nowrap;
+}
+.fs-badge-on { color: #d46b08; background: #fff3e0; }
+.fs-add { margin-bottom: 8px; }
+.fs-list { max-height: 300px; overflow-y: auto; }
+.fs-empty { color: #999; font-size: 12px; padding: 16px 4px; text-align: center; line-height: 1.7; }
+.fs-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 4px; border-bottom: 1px solid #f5f5f5;
+}
+.fs-item:last-child { border-bottom: none; }
+.fs-cat {
+    flex: 0 0 auto; font-size: 11px; color: #185fa5;
+    background: #eaf3ff; border-radius: 6px; padding: 3px 7px;
+}
+.fs-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fs-note { font-size: 13px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-sub { font-size: 11px; color: #999; }
+.fs-amt { font-size: 13px; font-weight: 600; color: #cf1322; white-space: nowrap; }
+.fs-del {
+    width: 22px; height: 22px; border: none; background: transparent;
+    color: #ccc; font-size: 16px; line-height: 1; cursor: pointer; border-radius: 6px;
+}
+.fs-del:hover { color: #cf1322; background: #fff1f0; }
+.fs-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin-top: 12px; padding-top: 12px; border-top: 1px dashed #eee; flex-wrap: wrap;
+}
+.fs-total { font-size: 13px; color: #666; }
+.fs-total b { color: #cf1322; }
+.fs-actions { display: flex; gap: 8px; }
